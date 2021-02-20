@@ -1,14 +1,34 @@
 # wallet_api_flutter
 
-A new Flutter package project.
+Wallet API for Sugar Foundation projects
+
+## Introduction
+
+Wallet API provide all the functions to create or import a cryptocurrecny wallet, check coins balances, get network fee, create transactions and submit transaction.
+
+This module depends on the following Sugar ecosystem libraries:
+
+- [Wallet SDK](https://github.com/Sugar-Foundation/wallet_sdk_flutter): Native cryptocurrecy wallet
+- [Utils](https://github.com/Sugar-Foundation/utils_flutter): Utils for handle numbers, bytes, etc
+- [Network](https://github.com/Sugar-Foundation/network_flutter): Handle Sugar nodes compatible HTTP request 
 
 ## Getting Started
 
-This project is a starting point for a Dart
-[package](https://flutter.dev/developing-packages/),
-a library module containing code that can be shared easily across
-multiple Flutter or Dart projects.
+Add the dependency in your project's 'pubspec.yaml' file.
 
-For help getting started with Flutter, view our 
-[online documentation](https://flutter.dev/docs), which offers tutorials, 
-samples, guidance on mobile development, and a full API reference.
+```yaml
+
+  wallet_sdk_flutter:
+    git: https://github.com/Sugar-Foundation/wallet_api_flutter
+
+```
+
+## Setup module
+
+In your app entry point, you need to initialize the Hive entities
+
+```dart
+
+moduleWalletInitHive();
+
+```

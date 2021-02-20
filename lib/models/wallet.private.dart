@@ -2,9 +2,9 @@ part of wallet_api_flutter;
 
 class WalletPrivateData {
   WalletPrivateData({
-    this.walletId,
-    this.walletType,
-    this.mnemonic,
+    @required this.walletId,
+    @required this.walletType,
+    @required this.mnemonic,
     this.privateKey,
   });
 

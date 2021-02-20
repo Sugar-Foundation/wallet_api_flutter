@@ -1,25 +1,25 @@
 part of wallet_api_flutter;
 
-extension WalletActionsCreate on  WalletActionsCubit  {
+extension WalletActionsCreate on WalletActionsCubit {
+  Future<String> create({
+    @required String name,
+    @required String walletId,
+    @required String password,
+    @required WalletType type,
+    String mnemonic,
+  }) async {
+    assert(name != null, password != null);
 
-  void createFromMnemonic(
-     String name,
-     String walletId,
-     String password, [
-    String importMnemonic,
-    WalletType type,
-    Completer<String> completer,
-  ]) async  {
-
- assert(name != null, password != null);
-
- 
-    var mnemonic = importMnemonic ?? '';
-    final isImport = mnemonic.isNotEmpty;
+    final isImport = mnemonic?.isNotEmpty == true;
 
     // Create new Wallet
     if (!isImport) {
       mnemonic = await WalletRepository().generateMnemonic();
+    }
+
+    // Check mnemonic, if still empty, wallet creation failed
+    if (mnemonic == null || mnemonic.isEmpty) {
+      throw WalletMnemonicError();
     }
 
     // Import new wallet Or use created
@@ -30,12 +30,6 @@ extension WalletActionsCreate on  WalletActionsCubit  {
       ),
     );
 
-    // Check mnemonic, if still empty, wallet creation failed
-    if (mnemonic == null || mnemonic.isEmpty) {
-      throw WalletMnemonicError();
-    }
-
-    // 创建本地钱包信息
     final addresses = coinList.entries
         .map(
           (item) => CoinAddress(
@@ -57,7 +51,7 @@ extension WalletActionsCreate on  WalletActionsCubit  {
           name: name,
           coins: [],
           addresses: addresses,
-          // If import Mnemonic, I guess user already did backup
+          // If isImport, I guess user already did backup
           hasBackup: isImport,
         );
 
@@ -69,92 +63,85 @@ extension WalletActionsCreate on  WalletActionsCubit  {
       walletModel,
     );
 
-    // TODO: Handle Asset Call
-    // dispatch(AppActionLoadWallet(walletModel));
+    _updateState(state.copyWith(
+      wallets: allWallets,
+      activeWallet: walletModel,
+    ));
 
-    completer.complete(mnemonic);
-
-    // return state.rebuild(
-    //   (b) => b
-    //     ..activeWalletId = walletId
-    //     ..activeWallet = walletModel
-    //     ..wallets = allWallets,
-    // );
+    return mnemonic;
   }
 
-  // @override
-  // Object wrapError(dynamic error) {
-  //   completer.completeError(error);
-  //   return error;
-  // }
+  Future<bool> validateAddress({
+    @required String chain,
+    @required String address,
+  }) async {
+    try {
+      await WalletRepository().validateAddress(
+        chain: chain,
+        address: address,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> validateMnemonic({
+    @required String mnemonic,
+  }) async {
+    try {
+      await WalletRepository().validateMnemonic(mnemonic);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> updateAddress({
+    @required String mnemonic,
+    @required String chain,
+  }) async {
+    final wallet = state.activeWallet;
+    final walletId = state.activeWalletId;
+
+    if (!WalletSdkChains.all.contains(chain)) {
+      throw AssertionError('$chain not supported in this wallet');
+    }
+
+    final coinList = await WalletRepository().importMnemonic(
+      mnemonic: mnemonic,
+      options: WalletCoreOptions(
+        useBip44: wallet.type == WalletType.mnemonicBip44,
+      ),
+      symbols: [chain],
+    );
+
+    final addresses = coinList.entries
+        .map(
+          (item) => CoinAddress(
+            chain: item.key,
+            symbol: item.key,
+            address: item.value.address,
+            publicKey: item.value.publicKey,
+          ),
+        )
+        .toList();
+
+    final item = addresses.firstWhere((e) => e.chain == chain);
+    wallet.updateCoinAddress(
+      chain: chain,
+      address: item.address,
+      publicKey: item.publicKey,
+    );
+
+    final allWallets = await WalletRepository().saveWallet(
+      walletId,
+      wallet,
+    );
+
+    _updateState(state.copyWith(
+      wallets: allWallets,
+      activeWallet: wallet,
+    ));
+  }
 }
-
-// class WalletActionUpdateAddress extends _BaseAction {
-//   WalletActionUpdateAddress({
-//     @required this.mnemonic,
-//     @required this.completer,
-//     @required this.chain,
-//   });
-
-//   final String mnemonic;
-//   final String chain;
-//   final Completer<bool> completer;
-
-//   @override
-//   Future<WalletState> reduce() async {
-//     final wallet = store.state.activeWallet;
-//     final walletId = store.state.activeWalletId;
-
-//     if (!WalletSdkChains.all.contains(chain)) {
-//       throw AssertionError('$chain not supported in this wallet');
-//     }
-
-//     final coinList = await WalletRepository().importMnemonic(
-//       mnemonic: mnemonic,
-//       options: WalletCoreOptions(
-//         useBip44: wallet.type == WalletType.mnemonicBip44,
-//       ),
-//       symbols: [chain],
-//     );
-
-//     // 创建本地钱包信息
-//     final addresses = coinList.entries
-//         .map(
-//           (item) => CoinAddress(
-//             chain: item.key,
-//             symbol: item.key,
-//             address: item.value.address,
-//             publicKey: item.value.publicKey,
-//           ),
-//         )
-//         .toList();
-
-//     final item = addresses.firstWhere((e) => e.chain == chain);
-//     wallet.updateCoinAddress(
-//       chain: chain,
-//       address: item.address,
-//       publicKey: item.publicKey,
-//     );
-
-//     final allWallets = await WalletRepository().saveWallet(
-//       walletId,
-//       wallet,
-//     );
-
-
-
-//     completer.complete(true);
-
-//     return state.rebuild(
-//       (b) => b
-//         ..activeWallet = wallet
-//         ..wallets = allWallets,
-//     );
-//   }
-
-//   @override
-//   Object wrapError(dynamic error) {
-//     completer.completeError(error);
-//     return error;
-//   }
-// }
