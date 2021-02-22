@@ -7,18 +7,16 @@ class WalletActionsCubit extends Cubit<WalletState> {
     emit(newState);
   }
 
-  Future<void> getUnspent({
+  Future<List<Map<String, dynamic>>> getUnspent({
     @required String chain,
     @required String symbol,
     @required String address,
-    @required Completer<List<Map<String, dynamic>>> completer,
     @required double balance,
     String unspentType,
     bool forceUpdate = false,
   }) async {
     if (!kChainsNeedUnspent.contains(chain)) {
-      completer.complete(null);
-      return;
+      return null;
     }
 
     try {
@@ -46,18 +44,22 @@ class WalletActionsCubit extends Cubit<WalletState> {
       }
 
       if (unspent == null || unspent.isEmpty) {
-        // TODO: Reset coin balance
+        resetCoinBalance(
+          wallet: state.activeWallet,
+          chain: chain,
+          symbol: symbol,
+          address: address,
+        );
       }
 
-      completer.complete(unspent);
+      return unspent;
     } catch (error) {
       WalletRepository().saveUnspentToCache(
         symbol: symbol,
         address: address,
         unspent: null,
       );
-
-      completer.completeError(error);
+      rethrow;
     }
   }
 }

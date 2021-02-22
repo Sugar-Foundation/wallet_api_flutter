@@ -14,7 +14,10 @@ class CoinInfo extends HiveObject {
     this.iconLocal,
     this.isEnabled,
     this.isFixed,
-  });
+  }){
+    createdAt = DateTime.now();
+    updatedAt = DateTime.now();
+  }
 
   @HiveField(0)
   String chain;
@@ -23,7 +26,7 @@ class CoinInfo extends HiveObject {
 
   /// Token contract or fork
   /// - ETH: Token contract
-  /// - BBC: Fork ID/TX
+  /// - BBC: Fork ID
   @HiveField(2)
   String contract;
 
@@ -44,7 +47,15 @@ class CoinInfo extends HiveObject {
 
   @HiveField(10)
   bool isFixed;
-
   @HiveField(11)
   bool isEnabled;
+
+  @HiveField(20)
+  DateTime createdAt;
+  @HiveField(21)
+  DateTime updatedAt;
+
+  String get id => '$chain:$symbol';
+
+  String get displayName => name ?? symbol;
 }

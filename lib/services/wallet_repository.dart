@@ -1,8 +1,6 @@
 part of wallet_api_flutter;
 
 class WalletRepository {
-// Singleton instance
-
   factory WalletRepository([
     WalletApi _api,
   ]) {
@@ -15,23 +13,21 @@ class WalletRepository {
 
   WalletApi _api;
   LazyBox<Wallet> _wallets;
-  LazyBox<List<dynamic>> _broadcasts;
   LazyBox<List<dynamic>> _unspents;
 
   static const _walletCacheKey = 'wallets_v1';
   static const _unspentsCacheKey = 'unspents_v1';
-  static const _broadcastsCacheKey = 'broadcasts_v1';
 
-  /// m/44'/%d'/0'/0/0 兼容imToken
+  /// imToken Path
   static const walletPathImToken = "m/44'/%d'/0'/0/0";
 
   /// PockMine path
   static const walletPathPockMine = "m/44'/%d'";
 
-  /// 为空 兼容imToken
+  /// imToken Password
   static const walletPasswordImToken = '';
 
-  /// 为空 兼容PockMine
+  /// PockMine Password
   static const walletPasswordPockMine = 'bbc_keys';
 
 // Methods
@@ -40,13 +36,12 @@ class WalletRepository {
     _wallets = await Hive.openLazyBox<Wallet>(
       _walletCacheKey,
     );
-    _broadcasts = await Hive.openLazyBox<List<dynamic>>(
-      _broadcastsCacheKey,
-    );
     _unspents = await Hive.openLazyBox<List<dynamic>>(
       _unspentsCacheKey,
     );
   }
+
+//  ▼▼▼▼▼▼ Network Fee ▼▼▼▼▼▼  //
 
   Future<Map<String, dynamic>> getFee({
     @required String chain,
@@ -62,6 +57,43 @@ class WalletRepository {
       fromAddress: fromAddress,
       data: data,
     );
+  }
+
+//  ▼▼▼▼▼▼ Balances ▼▼▼▼▼▼  //
+
+  Future<Map<String, String>> getCoinBalance({
+    @required String chain,
+    @required String symbol,
+    @required String address,
+    @required String contract,
+  }) async {
+    String balance = '0';
+    String unconfirmed = '0';
+    switch (chain) {
+      case 'BTC':
+        balance = await _api.getBtcBalance(address);
+        break;
+      case 'BBC':
+        final res = await _api.getCoinBalanceWithUnconfirmed(
+          chain: chain,
+          symbol: symbol,
+          address: address,
+        );
+        balance = res['balance']?.toString();
+        unconfirmed = res['unconfirmed']?.toString();
+        break;
+      default:
+        balance = await _api.getCoinBalance(
+          chain: chain,
+          symbol: symbol,
+          address: address,
+        );
+        break;
+    }
+    return {
+      'balance': balance,
+      'unconfirmed': unconfirmed,
+    };
   }
 
 //  ▼▼▼▼▼▼ Unspent ▼▼▼▼▼▼  //
@@ -80,20 +112,18 @@ class WalletRepository {
     );
   }
 
-  /// null-api error ,[]-balance zero ,[unspent]-nice
   Future<List<Map<String, dynamic>>> getUnspentFromCache({
     @required String symbol,
     @required String address,
   }) async {
     final list = await _unspents.get('$symbol:$address');
-    if (list != null && list.isNotEmpty) {
+    if (list?.isNotEmpty == true) {
       return List<Map<String, dynamic>>.from(
         list.map(
           (e) => (e as Map).cast<String, dynamic>(),
         ),
       );
     }
-
     if (list == null) {
       return null;
     }
@@ -173,11 +203,8 @@ class WalletRepository {
   }
 
   /// Import existing mnemonic
-  /// mnemonic 助记词
-  /// path xxx
-  /// password 钱包标识，一个应用一个password
   Future<Map<String, WalletAddressInfo>> importMnemonic({
-    String mnemonic,
+    @required String mnemonic,
     WalletCoreOptions options = const WalletCoreOptions(),
     List<String> symbols,
   }) async {
@@ -224,42 +251,7 @@ class WalletRepository {
     );
   }
 
-  //  ▼▼▼▼▼▼ Save Broadcast TxId ▼▼▼▼▼▼  //
-
-  Future<List<BroadcastTxInfo>> getBroadcastsFromCache(
-    String walletId,
-  ) async {
-    try {
-      final list = await _broadcasts.get(
-        walletId,
-        defaultValue: [],
-      );
-      return List.from(list);
-    } catch (_) {
-      return List.from([]);
-    }
-  }
-
-  Future<void> saveBroadcastsToCache(
-    String walletId,
-    List<BroadcastTxInfo> broadcasts,
-  ) async {
-    await _broadcasts.put(
-      walletId,
-      broadcasts,
-    );
-  }
-
-  Future<void> clearBroadcastsCache(
-    String walletId,
-  ) async {
-    await _broadcasts.put(
-      walletId,
-      [],
-    );
-  }
-
-//  ▼▼▼▼▼▼ Create Withdraw Transaction ▼▼▼▼▼▼  //
+//  ▼▼▼▼▼▼ Create Transactions ▼▼▼▼▼▼  //
 
   Future<String> createETHTransaction({
     @required int nonce,
@@ -338,97 +330,13 @@ class WalletRepository {
     @required int amount,
     @required int fee,
   }) {
-    return _api.postTRXCreateTransaction(
+    return _api.createTRXTransaction(
       chain: 'TRX',
       symbol: symbol,
       from: from,
       amount: amount,
       address: address,
       fee: fee,
-    );
-  }
-
-//  ▼▼▼▼▼▼ Create DEX Transaction ▼▼▼▼▼▼  //
-
-  Future<double> getDexApproveBalance({
-    @required String chain,
-    @required String symbol,
-    @required String sellAddress,
-    @required String sellContract,
-    @required int chainPrecision,
-  }) async {
-    final balance = await _api.getDexApproveBalance(
-      chain: chain,
-      symbol: symbol,
-      sellAddress: sellAddress,
-      sellContract: sellContract,
-    );
-    return balance != null
-        ? NumberUtil.getIntAmountAsDouble(
-            balance['balance']?.toString() ?? 0,
-            chainPrecision,
-          )
-        : 0.0;
-  }
-
-  Future<double> getDexOrderBalance({
-    @required String chain,
-    @required String symbol,
-    @required String sellAddress,
-    @required String primaryKey,
-    @required int chainPrecision,
-  }) async {
-    final balance = await _api.getDexOrderBalance(
-      chain: chain,
-      symbol: symbol,
-      primaryKey: primaryKey,
-      sellAddress: sellAddress,
-    );
-    return balance != null
-        ? NumberUtil.getIntAmountAsDouble(
-            balance ?? 0,
-            chainPrecision,
-          )
-        : 0.0;
-  }
-
-  Future<Map<String, dynamic>> dexCreateApproveTransaction({
-    @required String chain,
-    @required String symbol,
-    @required int sellAmount,
-    @required String sellContract,
-    @required String sellAddress,
-  }) {
-    return _api.getDexOrderApproveRawTx(
-      chain: chain,
-      symbol: symbol,
-      sellAmount: sellAmount,
-      sellContract: sellContract,
-      sellAddress: sellAddress,
-    );
-  }
-
-  Future<BbcTemplateData> dexCreateBBCOrderTransaction({
-    @required String tradePairId,
-    @required double price,
-    @required int fee,
-    @required int timestamp,
-    @required int validHeight,
-    @required String recvAddress,
-    @required String sellerAddress,
-    @required String matchAddress,
-    @required String dealAddress,
-  }) {
-    return WalletBBC.createBBCDexOrderTemplateData(
-      tradePair: tradePairId,
-      price: NumberUtil.getAmountAsInt(price, 10),
-      fee: fee,
-      timestamp: timestamp,
-      validHeight: validHeight,
-      recvAddress: recvAddress,
-      sellerAddress: sellerAddress,
-      matchAddress: matchAddress,
-      dealAddress: dealAddress,
     );
   }
 

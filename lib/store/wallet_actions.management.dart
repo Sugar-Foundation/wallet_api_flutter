@@ -1,6 +1,6 @@
 part of wallet_api_flutter;
 
-extension WalletActionsManagment on WalletActionsCubit {
+extension WalletActionsManagement on WalletActionsCubit {
   Future<void> changeName(String name) async {
     final activeWallet = state.activeWallet;
 

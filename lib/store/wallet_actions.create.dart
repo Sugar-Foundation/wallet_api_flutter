@@ -6,6 +6,11 @@ extension WalletActionsCreate on WalletActionsCubit {
     @required String walletId,
     @required String password,
     @required WalletType type,
+
+    /// App supported coins for this wallet
+    @required List<CoinInfo> coins,
+
+    /// If a mnemonic is provided, is considered as import wallet
     String mnemonic,
   }) async {
     assert(name != null, password != null);
@@ -44,28 +49,28 @@ extension WalletActionsCreate on WalletActionsCubit {
     final existingWallet = await WalletRepository().getWalletById(walletId);
 
     // Only add wallet if is new, otherwise use existing one
-    final walletModel = existingWallet ??
+    final newWallet = existingWallet ??
         Wallet(
           id: walletId,
           type: type,
           name: name,
-          coins: [],
+          coins: coins,
           addresses: addresses,
           // If isImport, I guess user already did backup
           hasBackup: isImport,
         );
 
-    walletModel.name = name;
-    walletModel.addresses = addresses;
+    newWallet.name = name;
+    newWallet.addresses = addresses;
 
     final allWallets = await WalletRepository().saveWallet(
       walletId,
-      walletModel,
+      newWallet,
     );
 
     _updateState(state.copyWith(
       wallets: allWallets,
-      activeWallet: walletModel,
+      activeWallet: newWallet,
     ));
 
     return mnemonic;

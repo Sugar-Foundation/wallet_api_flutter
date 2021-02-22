@@ -184,15 +184,16 @@ class CoinBalanceAdapter extends TypeAdapter<CoinBalance> {
       balance: fields[2] as double,
       unconfirmed: fields[3] as double,
     )
-      ..createdAt = fields[4] as DateTime
-      ..updatedAt = fields[5] as DateTime
-      ..lockUntil = fields[6] as DateTime;
+      ..lockUntil = fields[6] as DateTime
+      ..isFailed = fields[7] as bool
+      ..createdAt = fields[20] as DateTime
+      ..updatedAt = fields[21] as DateTime;
   }
 
   @override
   void write(BinaryWriter writer, CoinBalance obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.chain)
       ..writeByte(1)
@@ -201,12 +202,14 @@ class CoinBalanceAdapter extends TypeAdapter<CoinBalance> {
       ..write(obj.balance)
       ..writeByte(3)
       ..write(obj.unconfirmed)
-      ..writeByte(4)
-      ..write(obj.createdAt)
-      ..writeByte(5)
-      ..write(obj.updatedAt)
       ..writeByte(6)
-      ..write(obj.lockUntil);
+      ..write(obj.lockUntil)
+      ..writeByte(7)
+      ..write(obj.isFailed)
+      ..writeByte(20)
+      ..write(obj.createdAt)
+      ..writeByte(21)
+      ..write(obj.updatedAt);
   }
 
   @override
@@ -242,13 +245,15 @@ class CoinInfoAdapter extends TypeAdapter<CoinInfo> {
       iconLocal: fields[6] as String,
       isEnabled: fields[11] as bool,
       isFixed: fields[10] as bool,
-    );
+    )
+      ..createdAt = fields[20] as DateTime
+      ..updatedAt = fields[21] as DateTime;
   }
 
   @override
   void write(BinaryWriter writer, CoinInfo obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.chain)
       ..writeByte(1)
@@ -270,7 +275,11 @@ class CoinInfoAdapter extends TypeAdapter<CoinInfo> {
       ..writeByte(10)
       ..write(obj.isFixed)
       ..writeByte(11)
-      ..write(obj.isEnabled);
+      ..write(obj.isEnabled)
+      ..writeByte(20)
+      ..write(obj.createdAt)
+      ..writeByte(21)
+      ..write(obj.updatedAt);
   }
 
   @override

@@ -1,7 +1,7 @@
 part of wallet_api_flutter;
 
-class WithdrawBeforeParams {
-  WithdrawBeforeParams({
+class WithdrawPrepareParams {
+  WithdrawPrepareParams({
     @required this.chain,
     @required this.symbol,
     @required this.fromAddress,
@@ -31,75 +31,10 @@ class WithdrawBeforeParams {
   final String txData;
 }
 
-/// WithdrawData Before submit
-///
-class WithdrawBeforeData {
-  WithdrawBeforeData({
-    @required this.chain,
-    @required this.symbol,
-    @required this.fromAddress,
-    @required this.contract,
-    @required this.utxos,
-    @required this.fee,
-    @required this.feeData,
-    @required this.feeUnit,
-    @required this.feeSymbol,
-    @required this.feeError,
-    this.toAddress,
-    this.feeRate,
-  });
-
-  final String chain;
-  final String symbol;
-  final String fromAddress;
-
-  /// Fork ID or ETH Token Contract
-  final String contract;
-
-  /// fromAddress unspent utxos
-  final List<Map<String, dynamic>> utxos;
-
-  /// Fee in current chain symbol
-  double fee;
-
-  /// All Data returned from the Fee API
-  final dynamic feeData;
-
-  /// Mainly use for Bitcoin (satoshi/byte)
-  final String feeUnit;
-
-  /// Fee in coin symbol
-  final String feeSymbol;
-
-  /// Error code from getFee API
-  /// null is not error
-  final String feeError;
-
-  /// Used for bitcoin, the fee in satoshi/byte
-  double feeRate;
-
-  /// Used for ETH since we need the toAddress to get the fee
-  String toAddress;
-
-  bool get isDoubleTransaction => false;
-  // bool get isDoubleTransaction =>
-  //     feeError != null &&
-  //     feeError == 'INTERACT_WITH_THE_SAME_WALLET_FREQUENTLY';
-
-  String get displayFee => fee != null && fee > 0
-      ? NumberUtil.truncateDecimal<String>(fee, 10)
-      : '-';
-
-  String get displayFeeRate => feeRate != null && feeRate > 0
-      ? NumberUtil.truncateDecimal<String>(feeRate, 10)
-      : '-';
-}
-
 extension WalletActionsWithdrawPrepare on WalletActionsCubit {
-
-  Future<WithdrawBeforeData> withdrawPrepare({
-    WithdrawBeforeParams params,
-    WithdrawBeforeData previousData,
+  Future<WalletWithdrawData> withdrawPrepare({
+    WithdrawPrepareParams params,
+    WalletWithdrawData previousData,
     bool ignoreAddressCheck = false,
   }) async {
     try {
@@ -140,90 +75,67 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
 
   ///  ▼▼▼▼▼▼ Chains Implementations ▼▼▼▼▼▼  //
 
-  Future<WithdrawBeforeData> _withdrawBeforeBTC(
-    WithdrawBeforeParams params,
-    WithdrawBeforeData perviousData,
+  Future<WalletWithdrawData> _withdrawBeforeBTC(
+    WithdrawPrepareParams params,
+    WalletWithdrawData perviousData,
   ) async {
     const chain = 'BTC';
 
+    final symbol = params.symbol;
     final toAddress = params.fromAddress;
     final fromAddress = params.fromAddress;
-    final amount = params.amount;
-    final symbol = params.symbol;
 
     var data = perviousData;
     if (perviousData == null || perviousData?.utxos == null) {
-      final utxosRequest = Completer<List<Map<String, dynamic>>>();
       final balance = state.activeWallet.getCoinBalance(
-        chain: params.chain,
-        symbol: symbol,
-      );
-
-      getUnspent(
         chain: chain,
         symbol: symbol,
         address: fromAddress,
-        completer: utxosRequest,
-        balance: balance,
       );
-      final unspent = await utxosRequest.future;
 
-      final feeData = await WalletRepository().getFee(
+      final unspent = await getUnspent(
+        chain: chain,
+        symbol: symbol,
+        address: fromAddress,
+        balance: balance.balance,
+      );
+
+      final feeJson = await WalletRepository().getFee(
         chain: chain,
         symbol: symbol,
         toAddress: toAddress,
         fromAddress: fromAddress,
       );
 
-      data = WithdrawBeforeData(
+      final fee = WalletWithdrawFeeData.fromJson(
+        json: feeJson,
+        feeSymbol: symbol,
+      );
+
+      data = WalletWithdrawData(
         chain: chain,
-        symbol: 'BTC',
+        symbol: symbol,
         toAddress: toAddress,
         fromAddress: fromAddress,
-        feeRate: NumberUtil.getDouble(feeData['fee']),
-        fee: 0, // Is calculated below
-        feeData: feeData,
-        feeUnit: feeData['unit'].toString(),
-        feeSymbol: 'BTC',
-        feeError: feeData['risk']?.toString(),
+        fee: fee,
+        feeDefault: fee,
         utxos: unspent,
         contract: params.contractOrForkId,
       );
     }
 
-    // Calculate real Fee if I have utxos
-    if (data.utxos != null && data.utxos.isNotEmpty) {
-      final utxos = data.utxos
-          .map((item) => {
-                'txId': item['tx_hash'],
-                'vOut': NumberUtil.getInt(item['tx_output_n']),
-                'vAmount': NumberUtil.getInt(item['value']),
-              })
-          .toList();
-
-      final feeRate = NumberUtil.getDecimal(data.feeRate).toInt();
-      final feeInBtc = await WalletRepository().createBTCTransaction(
-        utxos: utxos,
-        toAddress: toAddress,
-        fromAddress: fromAddress,
-        toAmount: amount,
-        feeRate: feeRate,
-        beta: WalletConfigNetwork.btc,
-        isGetFee: true,
-      );
-      // Update fee with BTC value
-      data.fee = NumberUtil.truncateDecimal<double>(
-        feeInBtc,
-        params.chainPrecision,
-      );
-    }
+    // Update fee with BTC value
+    data.fee.feeValue = await WalletFeeUtils.getBTCFeeValue(
+      satoshi: data.fee.feeRateToInt,
+      fromAddress: fromAddress,
+    );
 
     return data;
   }
 
-  Future<WithdrawBeforeData> _withdrawBeforeETH(
-    WithdrawBeforeParams params,
-    WithdrawBeforeData perviousData,
+  Future<WalletWithdrawData> _withdrawBeforeETH(
+    WithdrawPrepareParams params,
+    WalletWithdrawData perviousData,
   ) async {
     const chain = 'ETH';
 
@@ -231,30 +143,40 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
     final toAddress = params.toAddress;
     final fromAddress = params.fromAddress;
 
-    final feeData = await WalletRepository().getFee(
+    final feeJson = await WalletRepository().getFee(
       chain: chain,
       symbol: symbol,
       toAddress: toAddress,
       fromAddress: fromAddress,
     );
-    final gasPrice = NumberUtil.getDecimal(feeData['gas_price']);
-    final gasLimit = NumberUtil.getDecimal(feeData['gas_limit']);
-    var fee = NumberUtil.getIntAmountAsDouble(
-      gasPrice * gasLimit,
-    );
 
-    fee = NumberUtil.truncateDecimal<double>(fee, params.chainPrecision);
+    final nonce = NumberUtil.getInt(feeJson['nonce']);
+    final gasPrice = NumberUtil.getInt(feeJson['gas_price']);
+    final gasLimit = NumberUtil.getInt(feeJson['gas_limit']);
+    // Since API do not return the rate, we need to add it
+    feeJson['fee'] = WalletFeeUtils.getETHFeeRate(gasPrice);
 
-    final data = WithdrawBeforeData(
+    final fee = WalletWithdrawFeeData.fromJson(
+      json: feeJson,
+      feeSymbol: chain,
+      feeUnit: 'Gwei',
+    )
+      ..nonce = nonce
+      ..gasLimit = gasLimit
+      ..gasPrice = gasPrice
+      ..feeValue = WalletFeeUtils.getETHFeeValue(
+        gasPrice: gasPrice,
+        gasLimit: gasLimit,
+        chainPrecision: params.chainPrecision,
+      );
+
+    final data = WalletWithdrawData(
       chain: chain,
       symbol: symbol,
       toAddress: toAddress,
       fromAddress: fromAddress,
       fee: fee,
-      feeData: feeData,
-      feeUnit: 'ETH',
-      feeSymbol: 'ETH',
-      feeError: feeData['risk']?.toString(),
+      feeDefault: fee,
       utxos: [], // ETH don't have unspent
       contract: params.contractOrForkId,
     );
@@ -262,9 +184,9 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
     return data;
   }
 
-  Future<WithdrawBeforeData> _withdrawBeforeBBC(
-    WithdrawBeforeParams params,
-    WithdrawBeforeData perviousData,
+  Future<WalletWithdrawData> _withdrawBeforeBBC(
+    WithdrawPrepareParams params,
+    WalletWithdrawData perviousData,
   ) async {
     const chain = 'BBC';
 
@@ -272,22 +194,20 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
     final toAddress = params.toAddress;
     final fromAddress = params.fromAddress;
 
-    final utxosRequest = Completer<List<Map<String, dynamic>>>();
     final balance = state.activeWallet.getCoinBalance(
       chain: params.chain,
       symbol: symbol,
+      address: fromAddress,
     );
 
-    getUnspent(
+    final unspent = await getUnspent(
       chain: chain,
       symbol: symbol,
       address: fromAddress,
-      completer: utxosRequest,
-      balance: balance,
+      balance: balance.balance,
     );
-    final unspent = await utxosRequest.future;
 
-    final feeData = await WalletRepository().getFee(
+    final feeJson = await WalletRepository().getFee(
       chain: chain,
       symbol: symbol,
       data: params.txData,
@@ -295,16 +215,22 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
       fromAddress: fromAddress,
     );
 
-    final data = WithdrawBeforeData(
+    final fee = WalletWithdrawFeeData.fromJson(
+      json: feeJson,
+      feeSymbol: feeJson['unit']?.toString() ?? symbol,
+    );
+    fee.feeValue = WalletFeeUtils.getBBCFeeValue(
+      bbc: fee.feeRateToDouble,
+      chainPrecision: params.chainPrecision,
+    );
+
+    final data = WalletWithdrawData(
       chain: chain,
       symbol: symbol,
       toAddress: toAddress,
       fromAddress: fromAddress,
-      fee: NumberUtil.getDouble(feeData['fee']),
-      feeData: feeData,
-      feeUnit: feeData['unit'].toString(),
-      feeSymbol: feeData['unit'].toString(),
-      feeError: feeData['risk']?.toString(),
+      fee: fee,
+      feeDefault: fee,
       utxos: unspent,
       contract: params.contractOrForkId,
     );
@@ -312,16 +238,16 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
     return data;
   }
 
-  Future<WithdrawBeforeData> _withdrawBeforeTRX(
-    WithdrawBeforeParams params,
-    WithdrawBeforeData perviousData,
+  Future<WalletWithdrawData> _withdrawBeforeTRX(
+    WithdrawPrepareParams params,
+    WalletWithdrawData perviousData,
   ) async {
     const chain = 'TRX';
     final symbol = params.symbol;
     final toAddress = params.toAddress;
     final fromAddress = params.fromAddress;
 
-    final feeData = await WalletRepository().getFee(
+    final feeJson = await WalletRepository().getFee(
       chain: chain,
       symbol: symbol,
       data: params.txData,
@@ -329,17 +255,22 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
       fromAddress: fromAddress,
     );
 
-    final data = WithdrawBeforeData(
+    final fee = WalletWithdrawFeeData.fromJson(
+      json: feeJson,
+      feeSymbol: chain,
+    );
+    fee.feeValue = WalletFeeUtils.getTRXFeeValue(
+      sun: fee.feeRateToInt,
+      chainPrecision: params.chainPrecision,
+    );
+
+    final data = WalletWithdrawData(
       chain: chain,
       symbol: symbol,
       toAddress: toAddress,
       fromAddress: fromAddress,
-      fee: NumberUtil.getIntAmountAsDouble(feeData['fee'], 6),
-      feeData: feeData,
-      feeUnit: feeData['unit'].toString(),
-      feeSymbol: 'TRX',
-      feeRate: NumberUtil.getDouble(feeData['fee']),
-      feeError: feeData['risk']?.toString(),
+      fee: fee,
+      feeDefault: fee,
       utxos: [],
       contract: params.contractOrForkId,
     );

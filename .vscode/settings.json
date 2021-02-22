@@ -1,5 +1,14 @@
 {
-    "cSpell.words": [
-        "riverpod"
-    ]
+  "editor.formatOnSave": true,
+  "dart.debugExternalLibraries": true,
+  "dart.debugSdkLibraries": true,
+  "dart.lineLength": 80,
+  "cSpell.enableFiletypes": [
+    "dart"
+  ],
+  "cSpell.words": [
+    "satoshi",
+    "unspents",
+    "utxos"
+  ]
 }

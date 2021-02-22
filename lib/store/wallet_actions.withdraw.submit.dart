@@ -17,15 +17,17 @@ class WithdrawSubmitParams {
   final double amount;
   final String toAddress;
   final int chainPrecision;
-  final WithdrawBeforeData withdrawData;
+  final WalletWithdrawData withdrawData;
 
-// BBC chain props
+  /// BBC Tx Data
   final String txData;
   final String txDataUUID;
   final String txTemplateData;
   final BbcDataType dataType;
 
-  /// bbc type 0-token 2-invitation
+  /// BBC transaction type
+  /// 0 for token
+  /// 2 for invitation
   final int type;
 
   final String broadcastType;
@@ -65,7 +67,6 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
     final toAddress = params.toAddress;
     final amount = params.amount;
     final fromAddress = data.fromAddress;
-    final feeRate = NumberUtil.getDecimal(data.feeRate).toInt();
 
     final utxos = data.utxos.map((item) {
       return {
@@ -80,7 +81,7 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
       toAddress: toAddress,
       toAmount: amount,
       fromAddress: fromAddress,
-      feeRate: feeRate,
+      feeRate: data.fee.feeRateToInt,
       beta: WalletConfigNetwork.btc,
       isGetFee: false,
     );
@@ -93,8 +94,11 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
       fromAddress: fromAddress,
       broadcastType: params.broadcastType,
       onConfirmSubmit: onConfirmSubmit,
-      amount: params.withdrawData.feeSymbol == params.withdrawData.symbol
-          ? NumberUtil.plus<double>(params.amount, params.withdrawData.fee)
+      amount: params.withdrawData.isFeeOnSymbol
+          ? NumberUtil.plus<double>(
+              params.amount,
+              params.withdrawData.fee.feeValue,
+            )
           : params.amount,
     );
 
@@ -112,20 +116,18 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
     final amount = params.amount;
     final toAddress = params.toAddress;
     final fromAddress = data.fromAddress;
-    final gasPrice = NumberUtil.getInt(data.feeData['gas_price']);
-    final gasLimit = NumberUtil.getInt(data.feeData['gas_limit']);
-    final nonce = NumberUtil.getInt(data.feeData['nonce']);
+
     final chainAmount = NumberUtil.getAmountAsInt(
       amount,
       params.chainPrecision,
     );
 
     final rawTx = await WalletRepository().createETHTransaction(
-      nonce: nonce,
-      gasLimit: gasLimit,
+      nonce: data.fee.nonce,
+      gasPrice: data.fee.gasPrice,
+      gasLimit: data.fee.gasLimit,
       address: toAddress,
       amount: chainAmount,
-      gasPrice: gasPrice,
       contract: data.contract,
     );
 
@@ -137,8 +139,11 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
       fromAddress: fromAddress,
       broadcastType: params.broadcastType,
       onConfirmSubmit: onConfirmSubmit,
-      amount: params.withdrawData.feeSymbol == params.withdrawData.symbol
-          ? NumberUtil.plus<double>(params.amount, params.withdrawData.fee)
+      amount: params.withdrawData.isFeeOnSymbol
+          ? NumberUtil.plus<double>(
+              params.amount,
+              params.withdrawData.fee.feeValue,
+            )
           : params.amount,
     );
 
@@ -157,7 +162,7 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
     final fromAddress = data.fromAddress;
     final amount = params.amount;
     final anchor = data.contract;
-    const timestamp = 0; // TODO: SystemDate.getTime();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
     final utxos = data.utxos
         .map((item) => {
               'txId': item['txid'],
@@ -171,10 +176,10 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
       timestamp: timestamp,
       anchor: anchor,
       amount: amount,
-      fee: data.fee,
-      version: 1, // version
-      lockUntil: 0, // lockUntil 王杰新说用 0
-      type: params.type ?? 0, // type 0-token 2-invitation
+      fee: data.fee.feeRateToDouble,
+      version: 1,
+      lockUntil: 0,
+      type: params.type ?? 0,
       data: params.txData,
       dataUUID: params.txDataUUID,
       templateData: params.txTemplateData,
@@ -189,8 +194,11 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
       fromAddress: fromAddress,
       broadcastType: params.broadcastType,
       onConfirmSubmit: onConfirmSubmit,
-      amount: params.withdrawData.feeSymbol == params.withdrawData.symbol
-          ? NumberUtil.plus<double>(params.amount, params.withdrawData.fee)
+      amount: params.withdrawData.isFeeOnSymbol
+          ? NumberUtil.plus<double>(
+              params.amount,
+              params.withdrawData.fee.feeValue,
+            )
           : params.amount,
     );
 
@@ -214,7 +222,7 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
       address: toAddress,
       from: fromAddress,
       amount: NumberUtil.getAmountAsInt(amount, params.chainPrecision),
-      fee: data.feeRate.toInt(),
+      fee: data.fee.feeRateToInt,
     );
 
     final txId = await signAndSubmitRawTx(
@@ -225,8 +233,11 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
       fromAddress: fromAddress,
       broadcastType: params.broadcastType,
       onConfirmSubmit: onConfirmSubmit,
-      amount: params.withdrawData.feeSymbol == params.withdrawData.symbol
-          ? NumberUtil.plus<double>(params.amount, params.withdrawData.fee)
+      amount: params.withdrawData.isFeeOnSymbol
+          ? NumberUtil.plus<double>(
+              params.amount,
+              params.withdrawData.fee.feeValue,
+            )
           : params.amount,
     );
 
@@ -244,20 +255,15 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
     Future<bool> Function() onConfirmSubmit,
   }) async {
     try {
-      String signedTx;
-      if (walletData.walletType == WalletType.device) {
-        // TODO: use HDKeyCore.signTx
-      } else {
-        signedTx = await WalletRepository().signTx(
-          mnemonic: walletData.mnemonic,
-          chain: chain,
-          rawTx: rawTx,
-          options: WalletCoreOptions(
-            useBip44: walletData.useBip44,
-            beta: WalletConfigNetwork.getTestNetByChain(chain),
-          ),
-        );
-      }
+      final signedTx = await WalletRepository().signTx(
+        mnemonic: walletData.mnemonic,
+        chain: chain,
+        rawTx: rawTx,
+        options: WalletCoreOptions(
+          useBip44: walletData.useBip44,
+          beta: WalletConfigNetwork.getTestNetByChain(chain),
+        ),
+      );
 
       if (onConfirmSubmit != null) {
         final canContinue = await onConfirmSubmit();
@@ -282,7 +288,14 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
       }
 
       // Update balance after submit
-      // TODO: Update Balance
+      getCoinBalance(
+        wallet: state.activeWallet,
+        chain: chain,
+        symbol: symbol,
+        address: fromAddress,
+        ignoreBalanceLock: true,
+        subtractFromBalance: amount,
+      );
 
       return txId;
     } catch (error) {
@@ -294,10 +307,17 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
           symbol: symbol,
           address: fromAddress,
         );
-        // Update balance if have error
-        // TODO: Update Balance
-        throw (WalletTransTxRejected(responseError.message));
+        // Force update balance if we have an error
+        getCoinBalance(
+          wallet: state.activeWallet,
+          chain: chain,
+          symbol: symbol,
+          address: fromAddress,
+          ignoreBalanceLock: true,
+        );
+        throw WalletTransTxRejected(responseError.message);
       }
+      rethrow;
     }
   }
 }

@@ -16,8 +16,8 @@ class _$WalletStateTearOff {
 // ignore: unused_element
   _WalletState call(
       {List<Wallet> wallets = const [],
-      Wallet activeWallet = null,
-      WalletStatus activeWalletStatus = WalletStatus.unknown}) {
+      @nullable Wallet activeWallet = null,
+      @nullable WalletStatus activeWalletStatus = WalletStatus.unknown}) {
     return _WalletState(
       wallets: wallets,
       activeWallet: activeWallet,
@@ -33,7 +33,9 @@ const $WalletState = _$WalletStateTearOff();
 /// @nodoc
 mixin _$WalletState {
   List<Wallet> get wallets;
+  @nullable
   Wallet get activeWallet;
+  @nullable
   WalletStatus get activeWalletStatus;
 
   @JsonKey(ignore: true)
@@ -47,8 +49,8 @@ abstract class $WalletStateCopyWith<$Res> {
       _$WalletStateCopyWithImpl<$Res>;
   $Res call(
       {List<Wallet> wallets,
-      Wallet activeWallet,
-      WalletStatus activeWalletStatus});
+      @nullable Wallet activeWallet,
+      @nullable WalletStatus activeWalletStatus});
 }
 
 /// @nodoc
@@ -86,8 +88,8 @@ abstract class _$WalletStateCopyWith<$Res>
   @override
   $Res call(
       {List<Wallet> wallets,
-      Wallet activeWallet,
-      WalletStatus activeWalletStatus});
+      @nullable Wallet activeWallet,
+      @nullable WalletStatus activeWalletStatus});
 }
 
 /// @nodoc
@@ -122,20 +124,20 @@ class __$WalletStateCopyWithImpl<$Res> extends _$WalletStateCopyWithImpl<$Res>
 class _$_WalletState with DiagnosticableTreeMixin implements _WalletState {
   _$_WalletState(
       {this.wallets = const [],
-      this.activeWallet = null,
-      this.activeWalletStatus = WalletStatus.unknown})
-      : assert(wallets != null),
-        assert(activeWallet != null),
-        assert(activeWalletStatus != null);
+      @nullable this.activeWallet = null,
+      @nullable this.activeWalletStatus = WalletStatus.unknown})
+      : assert(wallets != null);
 
   @JsonKey(defaultValue: const [])
   @override
   final List<Wallet> wallets;
   @JsonKey(defaultValue: null)
   @override
+  @nullable
   final Wallet activeWallet;
   @JsonKey(defaultValue: WalletStatus.unknown)
   @override
+  @nullable
   final WalletStatus activeWalletStatus;
 
   bool _didhasWallet = false;
@@ -210,14 +212,16 @@ class _$_WalletState with DiagnosticableTreeMixin implements _WalletState {
 abstract class _WalletState implements WalletState {
   factory _WalletState(
       {List<Wallet> wallets,
-      Wallet activeWallet,
-      WalletStatus activeWalletStatus}) = _$_WalletState;
+      @nullable Wallet activeWallet,
+      @nullable WalletStatus activeWalletStatus}) = _$_WalletState;
 
   @override
   List<Wallet> get wallets;
   @override
+  @nullable
   Wallet get activeWallet;
   @override
+  @nullable
   WalletStatus get activeWalletStatus;
   @override
   @JsonKey(ignore: true)

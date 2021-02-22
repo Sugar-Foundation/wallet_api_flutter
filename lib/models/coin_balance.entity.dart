@@ -9,6 +9,7 @@ class CoinBalance extends HiveObject {
     this.unconfirmed = 0,
   }) {
     createdAt = DateTime.now();
+    isFailed = false;
   }
 
   @HiveField(0)
@@ -19,10 +20,19 @@ class CoinBalance extends HiveObject {
   double balance;
   @HiveField(3)
   double unconfirmed;
-  @HiveField(4)
-  DateTime createdAt;
-  @HiveField(5)
-  DateTime updatedAt;
+
+  /// Time use to avoid frequent balances updates
   @HiveField(6)
   DateTime lockUntil;
+
+  /// If true indicate that update balance has failed
+  @HiveField(7)
+  bool isFailed;
+
+  @HiveField(20)
+  DateTime createdAt;
+  @HiveField(21)
+  DateTime updatedAt;
+
+  String get displayBalance => NumberUtil.truncateDecimal<String>(balance);
 }

@@ -4,6 +4,8 @@ class WalletApi {
   WalletApi(this._request);
   final Request _request;
 
+//  ▼▼▼▼▼▼ Network Fee ▼▼▼▼▼▼  //
+
   Future<Map<String, dynamic>> getFee({
     @required String chain,
     @required String symbol,
@@ -20,6 +22,47 @@ class WalletApi {
         },
       );
 
+//  ▼▼▼▼▼▼ Balances ▼▼▼▼▼▼  //
+
+  Future<String> getCoinBalance({
+    @required String chain,
+    @required String symbol,
+    @required String address,
+  }) =>
+      Request().getValue<String>(
+        '/v1/hd/wallet/$chain/$symbol/$address/balance',
+      );
+
+  Future<Map<String, dynamic>> getCoinBalanceWithUnconfirmed({
+    @required String chain,
+    @required String symbol,
+    @required String address,
+  }) =>
+      Request().getObject(
+        '/v2/hd/wallet/$chain/$symbol/$address/balance',
+      );
+
+  Future<String> getBtcBalance(
+    String address,
+  ) =>
+      Request().getExternalObject<String>(
+        '/address/$address',
+        baseUrl: 'https://chain.api.btc.com/v3',
+        onResponse: (response) {
+          if (response?.data == null ||
+              response.data is String ||
+              response.data['data'] == null) {
+            return null;
+          }
+          return NumberUtil.getIntAmountAsDouble(
+            response.data['data']['balance'],
+            8,
+          ).toString();
+        },
+      );
+
+//  ▼▼▼▼▼▼ Unspent ▼▼▼▼▼▼  //
+
   Future<List<Map<String, dynamic>>> getUnspent({
     @required String chain,
     @required String symbol,
@@ -33,7 +76,8 @@ class WalletApi {
         },
       );
 
-  /// 广播交易
+//  ▼▼▼▼▼▼ Transactions ▼▼▼▼▼▼  //
+
   Future<String> submitTransaction({
     @required String chain,
     @required String symbol,
@@ -48,53 +92,7 @@ class WalletApi {
         },
       );
 
-//  ▼▼▼▼▼▼ Dex Methods ▼▼▼▼▼▼  //
-
-  Future<Map<String, dynamic>> getDexApproveBalance({
-    @required String chain,
-    @required String symbol,
-    @required String sellAddress,
-    @required String sellContract,
-  }) =>
-      _request.getObject(
-        '/v1/hd/wallet/$chain/$symbol/approve_balance',
-        params: {
-          'sell_token': sellContract,
-          'sell_address': sellAddress,
-        },
-      );
-
-  Future<String> getDexOrderBalance({
-    @required String chain,
-    @required String symbol,
-    @required String primaryKey,
-    @required String sellAddress,
-  }) =>
-      _request.getValue<String>(
-        '/v1/hd/wallet/$chain/$symbol/dex_order_balance',
-        params: {
-          'primary_key': primaryKey,
-          'sell_address': sellAddress,
-        },
-      );
-
-  Future<Map<String, dynamic>> getDexOrderApproveRawTx({
-    @required String chain,
-    @required String symbol,
-    @required int sellAmount,
-    @required String sellAddress,
-    @required String sellContract,
-  }) =>
-      _request.getObject(
-        '/v1/hd/wallet/$chain/$symbol/approve',
-        params: {
-          'sell_token': sellContract,
-          'sell_amount': sellAmount,
-          'sell_address': sellAddress,
-        },
-      );
-
-  Future<String> postTRXCreateTransaction({
+  Future<String> createTRXTransaction({
     @required String chain,
     @required String symbol,
     @required String address,

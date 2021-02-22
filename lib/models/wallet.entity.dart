@@ -49,6 +49,7 @@ class Wallet extends HiveObject {
     @required this.coins,
   }) {
     balances = [];
+    addresses = [];
     createdAt = DateTime.now();
     status = WalletStatus.notSynced;
   }
@@ -76,12 +77,13 @@ class Wallet extends HiveObject {
   @HiveField(9)
   List<CoinAddress> addresses;
 
-  // Flags
-
   /// If true this is device wallet
   bool get isDevice => type == WalletType.device;
 
   List<String> get supportedChains => addresses.map((e) => e.chain).toList();
+
+  @override
+  String toString() => '$id-$name';
 
   String get bbcAddress {
     final coin = addresses?.firstWhere(
@@ -89,6 +91,29 @@ class Wallet extends HiveObject {
       orElse: () => null,
     );
     return coin?.address ?? '';
+  }
+
+  CoinInfo getCoinInfo({
+    @required String chain,
+    @required String symbol,
+  }) {
+    assert(chain != null);
+    assert(symbol != null);
+    return coins.firstWhere(
+      (e) => e.chain == chain && e.symbol == symbol,
+      orElse: () => null,
+    );
+  }
+
+  String getCoinAddress(String chain) {
+    assert(chain != null);
+    return addresses
+            .firstWhere(
+              (e) => e.chain == chain,
+              orElse: () => null,
+            )
+            ?.address ??
+        '';
   }
 
   bool isCoinBalanceLocked({
@@ -114,33 +139,7 @@ class Wallet extends HiveObject {
   }
 
   /// Get coin balance from this wallet cache
-  double getCoinBalance({
-    @required String chain,
-    @required String symbol,
-  }) {
-    assert(chain != null, symbol != null);
-    final data = balances?.firstWhere(
-      (e) => e.symbol == symbol && e.chain == chain,
-      orElse: () => null,
-    );
-    return data == null ? 0 : data.balance ?? 0;
-  }
-
-  /// Get Unconfirmed coin balance
-  /// (balance that is incoming but not confirmed yet)
-  double getCoinBalanceUnconfirmed({
-    @required String chain,
-    @required String symbol,
-  }) {
-    assert(chain != null, symbol != null);
-    final data = balances?.firstWhere(
-      (e) => e.symbol == symbol && e.chain == chain,
-      orElse: () => null,
-    );
-    return data == null ? 0 : data.unconfirmed ?? 0;
-  }
-
-  CoinBalance getCoinBalanceInfo({
+  CoinBalance getCoinBalance({
     @required String address,
     @required String chain,
     @required String symbol,
@@ -156,24 +155,6 @@ class Wallet extends HiveObject {
     return data;
   }
 
-  /// Update coin enable to use state
-  void updateCoinEnable({
-    @required String chain,
-    @required String symbol,
-    @required bool isEnabled,
-  }) {
-    assert(chain != null, symbol != null);
-    assert(isEnabled != null);
-    final coinInfo = coins.firstWhere(
-      (e) => e.symbol == symbol && e.chain == chain,
-      orElse: () => null,
-    );
-    if (coinInfo != null) {
-      coinInfo.isEnabled = isEnabled;
-      save();
-    }
-  }
-
   /// Update coin balance in this wallet
   void updateCoinBalance({
     @required String chain,
@@ -181,6 +162,7 @@ class Wallet extends HiveObject {
     @required String address,
     @required double balance,
     @required double unconfirmed,
+    @required bool isFailed,
   }) {
     assert(chain != null, symbol != null);
     assert(address != null);
@@ -188,9 +170,6 @@ class Wallet extends HiveObject {
     if (!isThisWalletAddress(address)) {
       return;
     }
-
-    // Old version remove coin without chain
-    balances.removeWhere((e) => e.symbol == symbol && e.chain == null);
 
     final coinBalance = balances.firstWhere(
       (e) => e.symbol == symbol && e.chain == chain,
@@ -204,12 +183,13 @@ class Wallet extends HiveObject {
       coinBalance.balance = balance;
       coinBalance.unconfirmed = unconfirmed;
       coinBalance.updatedAt = DateTime.now();
+      coinBalance.isFailed = isFailed;
       save();
     }
   }
 
   /// Forbid Update balance until the given time
-  void lockUpdateCoinBalance({
+  void lookCoinBalance({
     @required String chain,
     @required String symbol,
     @required String address,
@@ -248,6 +228,24 @@ class Wallet extends HiveObject {
     save();
   }
 
+  /// Update coin enable to use state
+  void updateCoinEnable({
+    @required String chain,
+    @required String symbol,
+    @required bool isEnabled,
+  }) {
+    assert(chain != null, symbol != null);
+    assert(isEnabled != null);
+    final coinInfo = coins.firstWhere(
+      (e) => e.symbol == symbol && e.chain == chain,
+      orElse: () => null,
+    );
+    if (coinInfo != null) {
+      coinInfo.isEnabled = isEnabled;
+      save();
+    }
+  }
+
   void updateStatus({
     @required WalletStatus status,
   }) {
@@ -255,18 +253,4 @@ class Wallet extends HiveObject {
     updatedAt = DateTime.now();
     save();
   }
-
-  String getCoinAddressByChain(String chain) {
-    assert(chain != null);
-    return addresses
-            ?.firstWhere(
-              (e) => e.chain == chain,
-              orElse: () => null,
-            )
-            ?.address ??
-        '';
-  }
-
-  @override
-  String toString() => '$id-$name';
 }
