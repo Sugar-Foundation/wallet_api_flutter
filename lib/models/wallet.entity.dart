@@ -21,11 +21,9 @@ enum WalletStatus {
 /// Type of this wallet (used to generate address)
 @HiveType(typeId: kHiveTypeWalletType)
 enum WalletType {
-  /// 路径BIP44，兼容imToken钱包助记词导入
   @HiveField(0)
   mnemonicBip44,
 
-  /// 路径BIP39，兼容PockMine钱包助记词导入
   @HiveField(1)
   mnemonicBip39,
 
@@ -49,7 +47,6 @@ class Wallet extends HiveObject {
     @required this.coins,
   }) {
     balances = [];
-    addresses = [];
     createdAt = DateTime.now();
     status = WalletStatus.notSynced;
   }
@@ -66,16 +63,16 @@ class Wallet extends HiveObject {
   bool hasBackup;
 
   @HiveField(5)
-  DateTime createdAt;
-  @HiveField(6)
-  DateTime updatedAt;
-
-  @HiveField(7)
   List<CoinInfo> coins;
-  @HiveField(8)
-  List<CoinBalance> balances;
   @HiveField(9)
+  List<CoinBalance> balances;
+  @HiveField(8)
   List<CoinAddress> addresses;
+
+  @HiveField(20)
+  DateTime createdAt;
+  @HiveField(21)
+  DateTime updatedAt;
 
   /// If true this is device wallet
   bool get isDevice => type == WalletType.device;
@@ -184,6 +181,7 @@ class Wallet extends HiveObject {
       coinBalance.unconfirmed = unconfirmed;
       coinBalance.updatedAt = DateTime.now();
       coinBalance.isFailed = isFailed;
+      coinBalance._balanceChanges.sink.add(coinBalance);
       save();
     }
   }

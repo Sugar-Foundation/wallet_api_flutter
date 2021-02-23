@@ -10,7 +10,11 @@ class CoinBalance extends HiveObject {
   }) {
     createdAt = DateTime.now();
     isFailed = false;
+    _balanceChanges = StreamController();
   }
+
+  @protected
+  StreamController<CoinBalance> _balanceChanges;
 
   @HiveField(0)
   String chain;
@@ -34,5 +38,13 @@ class CoinBalance extends HiveObject {
   @HiveField(21)
   DateTime updatedAt;
 
+  /// Stream of balances updates
+  Stream<CoinBalance> get balanceChanges => _balanceChanges.stream;
+
+  /// Display balance without extra zeros
   String get displayBalance => NumberUtil.truncateDecimal<String>(balance);
+
+  void dispose() {
+    _balanceChanges.close();
+  }
 }

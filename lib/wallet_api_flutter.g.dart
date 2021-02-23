@@ -122,15 +122,15 @@ class CoinAddressAdapter extends TypeAdapter<CoinAddress> {
     };
     return CoinAddress(
       chain: fields[0] as String,
-      symbol: fields[8] as String,
-      address: fields[1] as String,
-      publicKey: fields[4] as String,
-      addressType: fields[2] as String,
-      addressMemoOrTag: fields[3] as String,
-      description: fields[5] as String,
+      symbol: fields[1] as String,
+      address: fields[2] as String,
+      publicKey: fields[3] as String,
+      type: fields[4] as String,
+      memoOrTag: fields[5] as String,
+      description: fields[6] as String,
     )
-      ..createdAt = fields[6] as DateTime
-      ..updatedAt = fields[7] as DateTime;
+      ..createdAt = fields[20] as DateTime
+      ..updatedAt = fields[21] as DateTime;
   }
 
   @override
@@ -139,21 +139,21 @@ class CoinAddressAdapter extends TypeAdapter<CoinAddress> {
       ..writeByte(9)
       ..writeByte(0)
       ..write(obj.chain)
-      ..writeByte(8)
-      ..write(obj.symbol)
-      ..writeByte(5)
-      ..write(obj.description)
       ..writeByte(1)
+      ..write(obj.symbol)
+      ..writeByte(2)
       ..write(obj.address)
       ..writeByte(3)
-      ..write(obj.addressMemoOrTag)
-      ..writeByte(2)
-      ..write(obj.addressType)
-      ..writeByte(4)
       ..write(obj.publicKey)
+      ..writeByte(4)
+      ..write(obj.type)
+      ..writeByte(5)
+      ..write(obj.memoOrTag)
       ..writeByte(6)
+      ..write(obj.description)
+      ..writeByte(20)
       ..write(obj.createdAt)
-      ..writeByte(7)
+      ..writeByte(21)
       ..write(obj.updatedAt);
   }
 
@@ -405,14 +405,14 @@ class WalletAdapter extends TypeAdapter<Wallet> {
       id: fields[0] as String,
       type: fields[2] as WalletType,
       name: fields[1] as String,
-      addresses: (fields[9] as List)?.cast<CoinAddress>(),
+      addresses: (fields[8] as List)?.cast<CoinAddress>(),
       hasBackup: fields[4] as bool,
-      coins: (fields[7] as List)?.cast<CoinInfo>(),
+      coins: (fields[5] as List)?.cast<CoinInfo>(),
     )
       ..status = fields[3] as WalletStatus
-      ..createdAt = fields[5] as DateTime
-      ..updatedAt = fields[6] as DateTime
-      ..balances = (fields[8] as List)?.cast<CoinBalance>();
+      ..balances = (fields[9] as List)?.cast<CoinBalance>()
+      ..createdAt = fields[20] as DateTime
+      ..updatedAt = fields[21] as DateTime;
   }
 
   @override
@@ -430,15 +430,15 @@ class WalletAdapter extends TypeAdapter<Wallet> {
       ..writeByte(4)
       ..write(obj.hasBackup)
       ..writeByte(5)
-      ..write(obj.createdAt)
-      ..writeByte(6)
-      ..write(obj.updatedAt)
-      ..writeByte(7)
       ..write(obj.coins)
-      ..writeByte(8)
-      ..write(obj.balances)
       ..writeByte(9)
-      ..write(obj.addresses);
+      ..write(obj.balances)
+      ..writeByte(8)
+      ..write(obj.addresses)
+      ..writeByte(20)
+      ..write(obj.createdAt)
+      ..writeByte(21)
+      ..write(obj.updatedAt);
   }
 
   @override

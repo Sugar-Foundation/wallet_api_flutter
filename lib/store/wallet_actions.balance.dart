@@ -156,8 +156,6 @@ extension WalletActionsBalance on WalletActionsCubit {
         symbol: coin.symbol,
         address: wallet.getCoinAddress(coin.chain),
       );
-      // Notify state
-      _updateState(state.copyWith());
     }
   }
 }
