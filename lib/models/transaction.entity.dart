@@ -171,7 +171,7 @@ class Transaction extends HiveObject {
     }
   }
 
-  factory Transaction.fromSubmit({
+  factory Transaction.fromWithdraw({
     @required WithdrawSubmitParams params,
     @required String txId,
   }) =>

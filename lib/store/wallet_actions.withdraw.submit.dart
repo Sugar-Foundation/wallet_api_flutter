@@ -39,61 +39,32 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
     WalletPrivateData walletData,
     Future<bool> Function() onConfirmSubmit,
   }) async {
-    final chain = params.withdrawData.chain;
-    switch (chain) {
+    String rawTx;
+    switch (params.withdrawData.chain) {
       case 'BTC':
-        return await _withdrawSubmitBTC(params, walletData, onConfirmSubmit);
+        rawTx = await _getWithdrawRawTxBTC(params, walletData);
+        break;
       case 'ETH':
-        return await _withdrawSubmitETH(params, walletData, onConfirmSubmit);
+        rawTx = await _getWithdrawRawTxETH(params, walletData);
+        break;
       case 'BBC':
-        return await _withdrawSubmitBBC(params, walletData, onConfirmSubmit);
+        rawTx = await _getWithdrawRawTxBBC(params, walletData);
+        break;
       case 'TRX':
-        return await _withdrawSubmitTRX(params, walletData, onConfirmSubmit);
+        rawTx = await _getWithdrawRawTxTRX(params, walletData);
+        break;
       default:
         throw 'Not Implemented';
     }
-  }
-
-// //  ▼▼▼▼▼▼ Chains Implementations ▼▼▼▼▼▼  //
-
-  Future<String> _withdrawSubmitBTC(
-    WithdrawSubmitParams params,
-    WalletPrivateData walletData,
-    Future<bool> Function() onConfirmSubmit,
-  ) async {
-    const chain = 'BTC';
-
-    final data = params.withdrawData;
-    final toAddress = params.toAddress;
-    final amount = params.amount;
-    final fromAddress = data.fromAddress;
-
-    final utxos = data.utxos.map((item) {
-      return {
-        'txId': item['tx_hash'].toString(),
-        'vOut': NumberUtil.getInt(item['tx_output_n']),
-        'vAmount': NumberUtil.getIntAmountAsDouble(item['value'], 8),
-      };
-    }).toList();
-
-    final rawTx = await WalletRepository().createBTCTransaction(
-      utxos: utxos,
-      toAddress: toAddress,
-      toAmount: amount,
-      fromAddress: fromAddress,
-      feeRate: data.fee.feeRateToInt,
-      beta: WalletConfigNetwork.btc,
-      isGetFee: false,
-    );
 
     final txId = await signAndSubmitRawTx(
-      chain: chain,
-      symbol: data.symbol,
       rawTx: rawTx,
-      walletData: walletData,
-      fromAddress: fromAddress,
+      chain: params.withdrawData.chain,
+      symbol: params.withdrawData.symbol,
+      fromAddress: params.withdrawData.fromAddress,
       broadcastType: params.broadcastType,
       onConfirmSubmit: onConfirmSubmit,
+      walletData: walletData,
       amount: params.withdrawData.isFeeOnSymbol
           ? NumberUtil.plus<double>(
               params.amount,
@@ -101,146 +72,9 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
             )
           : params.amount,
     );
-
-    return txId;
-  }
-
-  Future<String> _withdrawSubmitETH(
-    WithdrawSubmitParams params,
-    WalletPrivateData walletData,
-    Future<bool> Function() onConfirmSubmit,
-  ) async {
-    const chain = 'ETH';
-
-    final data = params.withdrawData;
-    final amount = params.amount;
-    final toAddress = params.toAddress;
-    final fromAddress = data.fromAddress;
-
-    final chainAmount = NumberUtil.getAmountAsInt(
-      amount,
-      params.chainPrecision,
-    );
-
-    final rawTx = await WalletRepository().createETHTransaction(
-      nonce: data.fee.nonce,
-      gasPrice: data.fee.gasPrice,
-      gasLimit: data.fee.gasLimit,
-      address: toAddress,
-      amount: chainAmount,
-      contract: data.contract,
-    );
-
-    final txId = await signAndSubmitRawTx(
-      chain: chain,
-      symbol: data.symbol,
-      rawTx: rawTx,
-      walletData: walletData,
-      fromAddress: fromAddress,
-      broadcastType: params.broadcastType,
-      onConfirmSubmit: onConfirmSubmit,
-      amount: params.withdrawData.isFeeOnSymbol
-          ? NumberUtil.plus<double>(
-              params.amount,
-              params.withdrawData.fee.feeValue,
-            )
-          : params.amount,
-    );
-
-    return txId;
-  }
-
-  Future<String> _withdrawSubmitBBC(
-    WithdrawSubmitParams params,
-    WalletPrivateData walletData,
-    Future<bool> Function() onConfirmSubmit,
-  ) async {
-    const chain = 'BBC';
-
-    final data = params.withdrawData;
-    final toAddress = params.toAddress;
-    final fromAddress = data.fromAddress;
-    final amount = params.amount;
-    final anchor = data.contract;
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final utxos = data.utxos
-        .map((item) => {
-              'txId': item['txid'],
-              'vOut': NumberUtil.getInt(item['out']),
-            })
-        .toList();
-
-    final rawTx = await WalletRepository().createBBCTransaction(
-      utxos: utxos,
-      address: toAddress,
-      timestamp: timestamp,
-      anchor: anchor,
-      amount: amount,
-      fee: data.fee.feeRateToDouble,
-      version: 1,
-      lockUntil: 0,
-      type: params.type ?? 0,
-      data: params.txData,
-      dataUUID: params.txDataUUID,
-      templateData: params.txTemplateData,
-      dataType: params.dataType,
-    );
-
-    final txId = await signAndSubmitRawTx(
-      chain: chain,
-      symbol: data.symbol,
-      rawTx: rawTx,
-      walletData: walletData,
-      fromAddress: fromAddress,
-      broadcastType: params.broadcastType,
-      onConfirmSubmit: onConfirmSubmit,
-      amount: params.withdrawData.isFeeOnSymbol
-          ? NumberUtil.plus<double>(
-              params.amount,
-              params.withdrawData.fee.feeValue,
-            )
-          : params.amount,
-    );
-
-    return txId;
-  }
-
-  Future<String> _withdrawSubmitTRX(
-    WithdrawSubmitParams params,
-    WalletPrivateData walletData,
-    Future<bool> Function() onConfirmSubmit,
-  ) async {
-    const chain = 'TRX';
-
-    final data = params.withdrawData;
-    final toAddress = params.toAddress;
-    final fromAddress = data.fromAddress;
-    final amount = params.amount;
-
-    final rawTx = await WalletRepository().createTRXTransaction(
-      symbol: data.symbol,
-      address: toAddress,
-      from: fromAddress,
-      amount: NumberUtil.getAmountAsInt(amount, params.chainPrecision),
-      fee: data.fee.feeRateToInt,
-    );
-
-    final txId = await signAndSubmitRawTx(
-      chain: chain,
-      symbol: data.symbol,
-      rawTx: rawTx,
-      walletData: walletData,
-      fromAddress: fromAddress,
-      broadcastType: params.broadcastType,
-      onConfirmSubmit: onConfirmSubmit,
-      amount: params.withdrawData.isFeeOnSymbol
-          ? NumberUtil.plus<double>(
-              params.amount,
-              params.withdrawData.fee.feeValue,
-            )
-          : params.amount,
-    );
-
+    if (txId?.isNotEmpty == true) {
+      addTransaction(Transaction.fromWithdraw(params: params, txId: txId));
+    }
     return txId;
   }
 
@@ -319,5 +153,106 @@ extension WalletActionsWithdrawSubmit on WalletActionsCubit {
       }
       rethrow;
     }
+  }
+
+// //  ▼▼▼▼▼▼ Chains Implementations ▼▼▼▼▼▼  //
+
+  Future<String> _getWithdrawRawTxBTC(
+    WithdrawSubmitParams params,
+    WalletPrivateData walletData,
+  ) async {
+    final data = params.withdrawData;
+
+    final utxos = data.utxos.map((item) {
+      return {
+        'txId': item['tx_hash'].toString(),
+        'vOut': NumberUtil.getInt(item['tx_output_n']),
+        'vAmount': NumberUtil.getIntAmountAsDouble(item['value'], 8),
+      };
+    }).toList();
+
+    final rawTx = await WalletRepository().createBTCTransaction(
+      utxos: utxos,
+      toAddress: data.toAddress,
+      toAmount: params.amount,
+      fromAddress: data.fromAddress,
+      feeRate: data.fee.feeRateToInt,
+      beta: WalletConfigNetwork.btc,
+      isGetFee: false,
+    );
+
+    return rawTx;
+  }
+
+  Future<String> _getWithdrawRawTxETH(
+    WithdrawSubmitParams params,
+    WalletPrivateData walletData,
+  ) async {
+    final data = params.withdrawData;
+
+    final chainAmount = NumberUtil.getAmountAsInt(
+      params.amount,
+      params.chainPrecision,
+    );
+
+    final rawTx = await WalletRepository().createETHTransaction(
+      nonce: data.fee.nonce,
+      gasPrice: data.fee.gasPrice,
+      gasLimit: data.fee.gasLimit,
+      address: data.toAddress,
+      amount: chainAmount,
+      contract: data.contract,
+    );
+
+    return rawTx;
+  }
+
+  Future<String> _getWithdrawRawTxBBC(
+    WithdrawSubmitParams params,
+    WalletPrivateData walletData,
+  ) async {
+    final data = params.withdrawData;
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final utxos = data.utxos
+        .map((item) => {
+              'txId': item['txid'],
+              'vOut': NumberUtil.getInt(item['out']),
+            })
+        .toList();
+
+    final rawTx = await WalletRepository().createBBCTransaction(
+      utxos: utxos,
+      address: data.toAddress,
+      timestamp: timestamp,
+      anchor: data.contract,
+      amount: params.amount,
+      fee: data.fee.feeRateToDouble,
+      version: 1,
+      lockUntil: 0,
+      type: params.type ?? 0,
+      data: params.txData,
+      dataUUID: params.txDataUUID,
+      templateData: params.txTemplateData,
+      dataType: params.dataType,
+    );
+
+    return rawTx;
+  }
+
+  Future<String> _getWithdrawRawTxTRX(
+    WithdrawSubmitParams params,
+    WalletPrivateData walletData,
+  ) async {
+    final data = params.withdrawData;
+
+    final rawTx = await WalletRepository().createTRXTransaction(
+      symbol: data.symbol,
+      address: data.toAddress,
+      from: data.fromAddress,
+      amount: NumberUtil.getAmountAsInt(params.amount, params.chainPrecision),
+      fee: data.fee.feeRateToInt,
+    );
+
+    return rawTx;
   }
 }

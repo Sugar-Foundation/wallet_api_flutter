@@ -82,4 +82,21 @@ extension WalletActionsTransaction on WalletActionsCubit {
 
     return transactions;
   }
+
+  Future<Transaction> addTransaction(Transaction transaction) async {
+    final allTransactions = await WalletRepository().getTransactionsFromCache(
+      symbol: transaction.symbol,
+      address: transaction.fromAddress,
+    );
+
+    allTransactions.insert(0, transaction);
+
+    await WalletRepository().saveTransactionsToCache(
+      symbol: transaction.symbol,
+      address: transaction.fromAddress,
+      transactions: allTransactions.toList(),
+    );
+
+    return transaction;
+  }
 }
