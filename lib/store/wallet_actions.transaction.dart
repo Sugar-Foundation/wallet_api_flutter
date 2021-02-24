@@ -6,8 +6,8 @@ extension WalletActionsTransaction on WalletActionsCubit {
     @required String symbol,
     @required String address,
     @required int chainPrecision,
-    String page,
-    int skip,
+    String page = '0',
+    int skip = 0,
   }) async {
     /// Start with transaction from cache, so we show pending transactions
     final transactions = await WalletRepository().getTransactionsFromCache(
@@ -27,33 +27,41 @@ extension WalletActionsTransaction on WalletActionsCubit {
     var newTransactions = <Transaction>[];
     switch (chain) {
       case 'ETH':
-        newTransactions = rawData.map((item) => Transaction.fromETHTx(
-              symbol,
-              address,
-              chainPrecision,
-              item,
-            ));
+        newTransactions = rawData
+            .map((item) => Transaction.fromETHTx(
+                  symbol,
+                  address,
+                  chainPrecision,
+                  item,
+                ))
+            .toList();
         break;
       case 'BTC':
-        newTransactions = rawData.map((item) => Transaction.fromBTCTx(
-              symbol,
-              address,
-              item,
-            ));
+        newTransactions = rawData
+            .map((item) => Transaction.fromBTCTx(
+                  symbol,
+                  address,
+                  item,
+                ))
+            .toList();
         break;
       case 'BBC':
-        newTransactions = rawData.map((item) => Transaction.fromBBCTx(
-              symbol,
-              address,
-              item,
-            ));
+        newTransactions = rawData
+            .map((item) => Transaction.fromBBCTx(
+                  symbol,
+                  address,
+                  item,
+                ))
+            .toList();
         break;
       case 'TRX':
-        newTransactions = rawData.map((item) => Transaction.fromTRXTx(
-              symbol,
-              address,
-              item,
-            ));
+        newTransactions = rawData
+            .map((item) => Transaction.fromTRXTx(
+                  symbol,
+                  address,
+                  item,
+                ))
+            .toList();
         break;
       default:
     }
