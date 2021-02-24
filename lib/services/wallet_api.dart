@@ -78,6 +78,26 @@ class WalletApi {
 
 //  ▼▼▼▼▼▼ Transactions ▼▼▼▼▼▼  //
 
+  Future<Map<String, dynamic>> getTransactionInfo({
+    @required String chain,
+    @required String symbol,
+    @required String txId,
+  }) =>
+      Request().getObject(
+        '/v1/hd/wallet/$chain/$symbol/$txId/transaction_info',
+      );
+
+  Future<List<Map<String, dynamic>>> getTransactions({
+    @required String chain,
+    @required String symbol,
+    @required String address,
+    @required String page,
+    int take = 10,
+  }) =>
+      Request().getListOfObjects(
+        '/v1/hd/wallet/$chain/$symbol/$address/transaction?page=$page&take=$take',
+      );
+
   Future<String> submitTransaction({
     @required String chain,
     @required String symbol,
@@ -106,8 +126,8 @@ class WalletApi {
           'from_public_key': '',
           'to_address': address,
           'from_address': from,
-          'fee': fee,
           'amount': amount,
+          'fee': fee,
         },
       );
 }

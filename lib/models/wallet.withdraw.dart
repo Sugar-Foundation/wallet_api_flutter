@@ -27,30 +27,36 @@ class WalletWithdrawFeeData {
     );
   }
 
-  int gasPrice;
-  int gasLimit;
-  int nonce;
-
-  final String feeRate;
-
-  int get feeRateToInt => NumberUtil.getInt(feeRate);
-  double get feeRateToDouble => NumberUtil.getDouble(feeRate);
-
-  /// 矿工费分级
+  /// Level of the fee
+  /// Can be high, low, standard
   final String feeLevel;
 
-  /// Mainly use for Bitcoin (satoshi/byte)
+  /// Fee in unit on the network
+  /// Example for Bitcoin is satoshi/byte
+  /// Example for Ethereum is Gwei
   final String feeUnit;
+
+  /// Fee rate in fee unit
+  /// Example for Ethereum it will be Gwei
+  final String feeRate;
 
   /// Fee in coin symbol
   final String feeSymbol;
 
   /// Error code from getFee API
-  /// null is not error
+  /// - null is not there is no error
   final String feeError;
 
-  /// Fee in current chain symbol
+  /// Fee value in chain symbol
+  /// Example 0.005 ETH for Ethereum
   double feeValue;
+
+  int gasPrice;
+  int gasLimit;
+  int nonce;
+
+  int get feeRateToInt => NumberUtil.getInt(feeRate);
+  double get feeRateToDouble => NumberUtil.getDouble(feeRate);
 
   WalletWithdrawFeeData copyWith({
     String feeRate,
@@ -78,7 +84,6 @@ class WalletWithdrawFeeData {
 }
 
 /// WithdrawData
-///
 class WalletWithdrawData {
   WalletWithdrawData({
     @required this.chain,
@@ -95,31 +100,27 @@ class WalletWithdrawData {
   final String symbol;
   final String fromAddress;
 
-  /// Fork ID or ETH Token Contract
+  /// Fork ID or Token Contract
   final String contract;
 
-  /// fromAddress unspent utxos
+  /// Unspent utxos
   final List<Map<String, dynamic>> utxos;
 
+  /// Default Network Fee data
   final WalletWithdrawFeeData feeDefault;
 
-  /// Fee in current chain symbol
+  /// Current Network Fee data
   WalletWithdrawFeeData fee;
-
-  /// Used for bitcoin, the fee in satoshi/byte
 
   /// Used for ETH since we need the toAddress to get the fee
   String toAddress;
 
   bool get isDoubleTransaction => false;
-  // bool get isDoubleTransaction =>
-  //     feeError != null &&
-  //     feeError == 'INTERACT_WITH_THE_SAME_WALLET_FREQUENTLY';
 
   /// Return true if the withdraw fee symbol is same as withdraw symbol
   /// Example:
-  /// for ETH is true
-  /// for USDT is false
+  /// for ETH is true, since the fee is paid in ETH
+  /// for USDT is false, since the fee is paid in ETH
   bool get isFeeOnSymbol => fee?.feeSymbol == symbol;
 
   String get displayFee => fee?.feeValue != null && fee.feeValue > 0

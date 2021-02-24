@@ -49,18 +49,8 @@ extension WalletActionsBalance on WalletActionsCubit {
           address: address,
           contract: coinInfo.contract,
         );
-
-        // For ETH token, since we use etherscan the balance
-        // is a Int using the chainPrecision
-        if (chain == 'ETH' && symbol != 'ETH') {
-          newBalance = NumberUtil.getIntAmountAsDouble(
-            apiBalance['balance'],
-            coinInfo.chainPrecision,
-          );
-        } else {
-          newBalance = NumberUtil.getDouble(apiBalance['balance']);
-          newUnconfirmed = NumberUtil.getDouble(apiBalance['unconfirmed']);
-        }
+        newBalance = NumberUtil.getDouble(apiBalance['balance']);
+        newUnconfirmed = NumberUtil.getDouble(apiBalance['unconfirmed']);
       }
     } catch (_) {
       isFailed = true;

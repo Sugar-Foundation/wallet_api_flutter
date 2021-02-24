@@ -293,6 +293,124 @@ class CoinInfoAdapter extends TypeAdapter<CoinInfo> {
           typeId == other.typeId;
 }
 
+class TransactionTypeAdapter extends TypeAdapter<TransactionType> {
+  @override
+  final int typeId = 22;
+
+  @override
+  TransactionType read(BinaryReader reader) {
+    switch (reader.readByte()) {
+      case 0:
+        return TransactionType.deposit;
+      case 1:
+        return TransactionType.withdraw;
+      case 2:
+        return TransactionType.contractCall;
+      case 3:
+        return TransactionType.approveCall;
+      default:
+        return null;
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, TransactionType obj) {
+    switch (obj) {
+      case TransactionType.deposit:
+        writer.writeByte(0);
+        break;
+      case TransactionType.withdraw:
+        writer.writeByte(1);
+        break;
+      case TransactionType.contractCall:
+        writer.writeByte(2);
+        break;
+      case TransactionType.approveCall:
+        writer.writeByte(3);
+        break;
+    }
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TransactionTypeAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class TransactionAdapter extends TypeAdapter<Transaction> {
+  @override
+  final int typeId = 21;
+
+  @override
+  Transaction read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return Transaction()
+      ..txId = fields[0] as String
+      ..chain = fields[1] as String
+      ..symbol = fields[2] as String
+      ..confirmations = fields[3] as int
+      ..timestamp = fields[4] as int
+      ..blockHeight = fields[5] as int
+      ..failed = fields[6] as bool
+      ..toAddress = fields[7] as String
+      ..fromAddress = fields[8] as String
+      ..amount = fields[9] as double
+      ..feeValue = fields[10] as double
+      ..feeSymbol = fields[11] as String
+      ..type = fields[13] as TransactionType;
+  }
+
+  @override
+  void write(BinaryWriter writer, Transaction obj) {
+    writer
+      ..writeByte(13)
+      ..writeByte(0)
+      ..write(obj.txId)
+      ..writeByte(1)
+      ..write(obj.chain)
+      ..writeByte(2)
+      ..write(obj.symbol)
+      ..writeByte(3)
+      ..write(obj.confirmations)
+      ..writeByte(4)
+      ..write(obj.timestamp)
+      ..writeByte(5)
+      ..write(obj.blockHeight)
+      ..writeByte(6)
+      ..write(obj.failed)
+      ..writeByte(7)
+      ..write(obj.toAddress)
+      ..writeByte(8)
+      ..write(obj.fromAddress)
+      ..writeByte(9)
+      ..write(obj.amount)
+      ..writeByte(10)
+      ..write(obj.feeValue)
+      ..writeByte(11)
+      ..write(obj.feeSymbol)
+      ..writeByte(13)
+      ..write(obj.type);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TransactionAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
 class WalletStatusAdapter extends TypeAdapter<WalletStatus> {
   @override
   final int typeId = 15;
