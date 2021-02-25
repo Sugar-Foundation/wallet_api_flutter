@@ -1,12 +1,13 @@
 part of wallet_api_flutter;
 
+/// Parameters need it to fetch the Network Fee, Unspents and others data prior to submit the withdraw
 class WithdrawPrepareParams {
   WithdrawPrepareParams({
     @required this.chain,
     @required this.symbol,
     @required this.fromAddress,
     @required this.chainPrecision,
-    this.contractOrForkId,
+    this.contract,
     this.toAddress,
     this.amount,
     this.txData,
@@ -14,12 +15,13 @@ class WithdrawPrepareParams {
 
   final String chain;
   final String symbol;
-  final String fromAddress;
-
   final int chainPrecision;
 
-  /// [ETH or BCC Only]:  token contract/fork
-  final String contractOrForkId;
+  /// Need to check for calculate the network fee
+  final String fromAddress;
+
+  /// [ETH or BBC Only]:  token contract or fork id
+  final String contract;
 
   /// [ETH and BTC Only]: need toAddress to check for GAS fee
   final String toAddress;
@@ -27,7 +29,7 @@ class WithdrawPrepareParams {
   /// [BTC Only]: need to check for fee
   final double amount;
 
-  /// [BBC Only]: transaction data, need for calculate the fee
+  /// [BBC Only]: transaction data, need for calculate the network fee
   final String txData;
 }
 
@@ -35,52 +37,48 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
   Future<WalletWithdrawData> withdrawPrepare({
     WithdrawPrepareParams params,
     WalletWithdrawData previousData,
-    bool ignoreAddressCheck = false,
+    bool checkAddressIsValid = true,
   }) async {
     try {
       final toAddress = params.toAddress;
       final chain = params.chain;
 
       // Validate toAddress
-      if (ignoreAddressCheck != true &&
-          toAddress != null &&
-          toAddress.isNotEmpty) {
+      if (checkAddressIsValid == true) {
         await WalletRepository().validateAddress(
           chain: chain,
-          address: toAddress,
+          address: toAddress ?? '',
         );
       }
 
       switch (chain) {
         case 'BTC':
-          return await _withdrawBeforeBTC(params, previousData);
+          return await _getWithdrawDataBTC(params, previousData);
         case 'ETH':
-          return await _withdrawBeforeETH(params, previousData);
+          return await _getWithdrawDataETH(params, previousData);
         case 'BBC':
-          return await _withdrawBeforeBBC(params, previousData);
+          return await _getWithdrawDataBBC(params, previousData);
         case 'TRX':
-          return await _withdrawBeforeTRX(params, previousData);
+          return await _getWithdrawDataTRX(params, previousData);
         default:
           throw 'Not Implemented';
       }
     } catch (error) {
-      // Customize errors
+      // Handle errors
       if (error is PlatformException && error.code == 'AddressError') {
         throw WalletAddressError();
       }
-
       rethrow;
     }
   }
 
   ///  ▼▼▼▼▼▼ Chains Implementations ▼▼▼▼▼▼  //
 
-  Future<WalletWithdrawData> _withdrawBeforeBTC(
+  Future<WalletWithdrawData> _getWithdrawDataBTC(
     WithdrawPrepareParams params,
     WalletWithdrawData perviousData,
   ) async {
     const chain = 'BTC';
-
     final symbol = params.symbol;
     final toAddress = params.fromAddress;
     final fromAddress = params.fromAddress;
@@ -120,7 +118,7 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
         fee: fee,
         feeDefault: fee,
         utxos: unspent,
-        contract: params.contractOrForkId,
+        contract: params.contract,
       );
     }
 
@@ -133,12 +131,11 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
     return data;
   }
 
-  Future<WalletWithdrawData> _withdrawBeforeETH(
+  Future<WalletWithdrawData> _getWithdrawDataETH(
     WithdrawPrepareParams params,
     WalletWithdrawData perviousData,
   ) async {
     const chain = 'ETH';
-
     final symbol = params.symbol;
     final toAddress = params.toAddress;
     final fromAddress = params.fromAddress;
@@ -177,19 +174,18 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
       fromAddress: fromAddress,
       fee: fee,
       feeDefault: fee,
-      utxos: [], // ETH don't have unspent
-      contract: params.contractOrForkId,
+      utxos: [],
+      contract: params.contract,
     );
 
     return data;
   }
 
-  Future<WalletWithdrawData> _withdrawBeforeBBC(
+  Future<WalletWithdrawData> _getWithdrawDataBBC(
     WithdrawPrepareParams params,
     WalletWithdrawData perviousData,
   ) async {
     const chain = 'BBC';
-
     final symbol = params.symbol;
     final toAddress = params.toAddress;
     final fromAddress = params.fromAddress;
@@ -232,13 +228,13 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
       fee: fee,
       feeDefault: fee,
       utxos: unspent,
-      contract: params.contractOrForkId,
+      contract: params.contract,
     );
 
     return data;
   }
 
-  Future<WalletWithdrawData> _withdrawBeforeTRX(
+  Future<WalletWithdrawData> _getWithdrawDataTRX(
     WithdrawPrepareParams params,
     WalletWithdrawData perviousData,
   ) async {
@@ -272,7 +268,7 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
       fee: fee,
       feeDefault: fee,
       utxos: [],
-      contract: params.contractOrForkId,
+      contract: params.contract,
     );
 
     return data;

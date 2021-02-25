@@ -1,5 +1,50 @@
 part of wallet_api_flutter;
 
+/// WithdrawData
+class WalletWithdrawData {
+  WalletWithdrawData({
+    @required this.chain,
+    @required this.symbol,
+    @required this.fromAddress,
+    @required this.contract,
+    @required this.utxos,
+    @required this.fee,
+    @required this.feeDefault,
+    this.toAddress,
+  });
+
+  final String chain;
+  final String symbol;
+  final String fromAddress;
+
+  /// Fork ID or Token Contract
+  final String contract;
+
+  /// Unspent utxos
+  final List<Map<String, dynamic>> utxos;
+
+  /// Default Network Fee data
+  final WalletWithdrawFeeData feeDefault;
+
+  /// Current Network Fee data
+  WalletWithdrawFeeData fee;
+
+  /// Used for ETH since we need the toAddress to get the fee
+  String toAddress;
+
+  bool get isDoubleTransaction => false;
+
+  /// Return true if the withdraw fee symbol is same as withdraw symbol
+  /// Example:
+  /// for ETH is true, since the fee is paid in ETH
+  /// for USDT is false, since the fee is paid in ETH
+  bool get isFeeOnSymbol => fee?.feeSymbol == symbol;
+
+  String get displayFee => fee?.feeValue != null && fee.feeValue > 0
+      ? NumberUtil.truncateDecimal<String>(fee.feeValue, 10)
+      : '-';
+}
+
 class WalletWithdrawFeeData {
   WalletWithdrawFeeData({
     @required this.feeRate,
@@ -81,49 +126,4 @@ class WalletWithdrawFeeData {
       nonce: nonce ?? this.nonce,
     );
   }
-}
-
-/// WithdrawData
-class WalletWithdrawData {
-  WalletWithdrawData({
-    @required this.chain,
-    @required this.symbol,
-    @required this.fromAddress,
-    @required this.contract,
-    @required this.utxos,
-    @required this.fee,
-    @required this.feeDefault,
-    this.toAddress,
-  });
-
-  final String chain;
-  final String symbol;
-  final String fromAddress;
-
-  /// Fork ID or Token Contract
-  final String contract;
-
-  /// Unspent utxos
-  final List<Map<String, dynamic>> utxos;
-
-  /// Default Network Fee data
-  final WalletWithdrawFeeData feeDefault;
-
-  /// Current Network Fee data
-  WalletWithdrawFeeData fee;
-
-  /// Used for ETH since we need the toAddress to get the fee
-  String toAddress;
-
-  bool get isDoubleTransaction => false;
-
-  /// Return true if the withdraw fee symbol is same as withdraw symbol
-  /// Example:
-  /// for ETH is true, since the fee is paid in ETH
-  /// for USDT is false, since the fee is paid in ETH
-  bool get isFeeOnSymbol => fee?.feeSymbol == symbol;
-
-  String get displayFee => fee?.feeValue != null && fee.feeValue > 0
-      ? NumberUtil.truncateDecimal<String>(fee.feeValue, 10)
-      : '-';
 }

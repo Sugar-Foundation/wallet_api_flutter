@@ -144,13 +144,13 @@ class Transaction extends HiveObject {
         ..toAddress = data['toAddress'].toString()
         ..timestamp = NumberUtil.getInt(data['timestamp'])
         ..confirmations = NumberUtil.getInt(data['confirmed'])
-        ..feeValue = double.tryParse(data['txFee'].toString())
+        ..feeValue = NumberUtil.getDouble(data['txFee'])
         ..feeSymbol = symbol
         ..type = fromAddress.toLowerCase() ==
                 data['fromAddress'].toString().toLowerCase()
             ? TransactionType.withdraw
             : TransactionType.deposit
-        ..amount = double.tryParse(data['amount'].toString());
+        ..amount = NumberUtil.getDouble(data['amount']);
 
   factory Transaction.fromJson({
     @required String chain,
@@ -172,19 +172,20 @@ class Transaction extends HiveObject {
   }
 
   factory Transaction.fromWithdraw({
+    @required WalletWithdrawData withdrawData,
     @required WithdrawSubmitParams params,
     @required String txId,
   }) =>
       Transaction()
         ..txId = txId
-        ..chain = params.withdrawData.chain
-        ..symbol = params.withdrawData.symbol
-        ..fromAddress = params.withdrawData.fromAddress
+        ..chain = withdrawData.chain
+        ..symbol = withdrawData.symbol
+        ..fromAddress = withdrawData.fromAddress
         ..toAddress = params.toAddress
-        ..timestamp = DateTime.now().millisecondsSinceEpoch
+        ..timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000
         ..confirmations = 0
-        ..feeValue = params.withdrawData.fee.feeValue
-        ..feeSymbol = params.withdrawData.fee.feeSymbol
+        ..feeValue = withdrawData.fee.feeValue
+        ..feeSymbol = withdrawData.fee.feeSymbol
         ..type = TransactionType.withdraw
         ..amount = params.amount;
 
