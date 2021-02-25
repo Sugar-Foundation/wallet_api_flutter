@@ -21,6 +21,7 @@ part 'models/wallet.entity.dart';
 part 'models/wallet.path.dart';
 part 'models/wallet.private.dart';
 part 'models/wallet.withdraw.dart';
+part 'models/wallet.transaction.dart';
 part 'services/wallet_api.dart';
 part 'services/wallet_repository.balance.dart';
 part 'services/wallet_repository.dart';

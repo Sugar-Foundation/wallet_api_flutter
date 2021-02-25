@@ -254,6 +254,8 @@ class Transaction extends HiveObject {
   /// If true, ETH tx failed
   bool get isFailed => failed == true;
 
+  int get timestampSafe => timestamp ?? 0;
+
   bool get isOutput =>
       type == TransactionType.withdraw ||
       type == TransactionType.contractCall ||
