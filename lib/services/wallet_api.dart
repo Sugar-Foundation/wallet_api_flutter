@@ -4,26 +4,6 @@ class WalletApi {
   WalletApi(this._request);
   final Request _request;
 
-//  ▼▼▼▼▼▼ Network Fee ▼▼▼▼▼▼  //
-
-  Future<Map<String, dynamic>> getFee({
-    @required String chain,
-    @required String symbol,
-    String toAddress,
-    String fromAddress,
-    String data,
-  }) =>
-      _request.post<Map<String, dynamic>>(
-        '/v1/hd/wallet/$chain/$symbol/transaction/fee',
-        {
-          'from_address': fromAddress,
-          'to_address': toAddress,
-          'data': data,
-        },
-      );
-
-//  ▼▼▼▼▼▼ Balances ▼▼▼▼▼▼  //
-
   Future<String> getCoinBalance({
     @required String chain,
     @required String symbol,
@@ -78,6 +58,22 @@ class WalletApi {
 
 //  ▼▼▼▼▼▼ Transactions ▼▼▼▼▼▼  //
 
+  Future<Map<String, dynamic>> getTransactionFee({
+    @required String chain,
+    @required String symbol,
+    String toAddress,
+    String fromAddress,
+    String txData,
+  }) =>
+      _request.post<Map<String, dynamic>>(
+        '/v1/hd/wallet/$chain/$symbol/transaction/fee',
+        {
+          'from_address': fromAddress,
+          'to_address': toAddress,
+          'data': txData,
+        },
+      );
+
   Future<Map<String, dynamic>> getTransactionInfo({
     @required String chain,
     @required String symbol,
@@ -96,6 +92,15 @@ class WalletApi {
   }) =>
       Request().getListOfObjects(
         '/v1/hd/wallet/$chain/$symbol/$address/transaction?page=$page&take=$take',
+      );
+
+  Future<Map<String, dynamic>> getTRXTransactions({
+    @required String symbol,
+    @required String address,
+    @required String fingerprint,
+  }) =>
+      Request().getObject(
+        '/v1/hd/wallet/TRX/$symbol/$address/transaction?page=$fingerprint',
       );
 
   Future<String> submitTransaction({

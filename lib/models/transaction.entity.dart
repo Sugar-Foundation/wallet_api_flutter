@@ -32,8 +32,10 @@ class Transaction extends HiveObject {
     String fromAddress,
     Map<String, dynamic> data,
   ) {
-    final balanceDiff =
-        NumberUtil.getIntAmountAsDouble(data['balance_diff'], 8);
+    final balanceDiff = NumberUtil.getIntAmountAsDouble(
+      data['balance_diff'] ?? 0,
+      8,
+    );
 
     final isWithdraw = balanceDiff < 0;
 
@@ -58,7 +60,7 @@ class Transaction extends HiveObject {
       ..toAddress = isWithdraw ? outFirst : fromAddress
       ..timestamp = NumberUtil.getInt(data['block_time'])
       ..confirmations = NumberUtil.getInt(data['confirmations'])
-      ..feeValue = NumberUtil.getIntAmountAsDouble(data['fee'], 8)
+      ..feeValue = NumberUtil.getIntAmountAsDouble(data['fee'] ?? 0, 8)
       ..feeSymbol = symbol
       ..type = isWithdraw ? TransactionType.withdraw : TransactionType.deposit
       ..amount = balanceDiff.abs();

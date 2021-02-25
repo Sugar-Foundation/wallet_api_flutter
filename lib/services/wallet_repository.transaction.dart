@@ -13,20 +13,32 @@ extension WalletRepositoryTransaction on WalletRepository {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getTransactionsFromApi({
+  Future<MapEntry<String, List<Map<String, dynamic>>>> getTransactionsFromApi({
     @required String chain,
     @required String symbol,
     @required String address,
     @required String page,
     @required int skip,
-  }) {
-    return _api.getTransactions(
+  }) async {
+    if (chain == 'TRX') {
+      final result = await _api.getTRXTransactions(
+        symbol: symbol,
+        address: address,
+        fingerprint: page,
+      );
+      return MapEntry(
+        result['meta']['fingerprint'],
+        List.castFrom<dynamic, Map<String, dynamic>>(result['data'] ?? []),
+      );
+    }
+    final result = await _api.getTransactions(
       chain: chain,
       symbol: symbol,
       address: address,
       page: page,
       take: skip,
     );
+    return MapEntry(page, result);
   }
 
   Future<List<Transaction>> getTransactionsFromCache({

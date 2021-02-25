@@ -16,7 +16,7 @@ class WalletRepository {
   LazyBox<List<dynamic>> _unspents;
   LazyBox<List<dynamic>> _transactions;
 
-  static const _walletCacheKey = 'wallets_v1';
+  static const _walletsCacheKey = 'wallets_v1';
   static const _unspentsCacheKey = 'unspents_v1';
   static const _transactionsCacheKey = 'transactions_v1';
 
@@ -36,7 +36,7 @@ class WalletRepository {
 
   Future<void> initializeCache() async {
     _wallets = await Hive.openLazyBox<Wallet>(
-      _walletCacheKey,
+      _walletsCacheKey,
     );
     _unspents = await Hive.openLazyBox<List<dynamic>>(
       _unspentsCacheKey,
@@ -53,14 +53,14 @@ class WalletRepository {
     @required String symbol,
     String toAddress,
     String fromAddress,
-    String data = '',
+    String txData = '',
   }) {
-    return _api.getFee(
+    return _api.getTransactionFee(
       chain: chain,
       symbol: symbol,
       toAddress: toAddress,
       fromAddress: fromAddress,
-      data: data,
+      txData: txData,
     );
   }
 }

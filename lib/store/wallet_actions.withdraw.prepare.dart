@@ -78,7 +78,7 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
     WithdrawPrepareParams params,
     WalletWithdrawData perviousData,
   ) async {
-    const chain = 'BTC';
+    final chain = params.chain;
     final symbol = params.symbol;
     final toAddress = params.fromAddress;
     final fromAddress = params.fromAddress;
@@ -135,7 +135,7 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
     WithdrawPrepareParams params,
     WalletWithdrawData perviousData,
   ) async {
-    const chain = 'ETH';
+    final chain = params.chain;
     final symbol = params.symbol;
     final toAddress = params.toAddress;
     final fromAddress = params.fromAddress;
@@ -185,7 +185,7 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
     WithdrawPrepareParams params,
     WalletWithdrawData perviousData,
   ) async {
-    const chain = 'BBC';
+    final chain = params.chain;
     final symbol = params.symbol;
     final toAddress = params.toAddress;
     final fromAddress = params.fromAddress;
@@ -206,7 +206,7 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
     final feeJson = await WalletRepository().getFee(
       chain: chain,
       symbol: symbol,
-      data: params.txData,
+      txData: params.txData,
       toAddress: toAddress,
       fromAddress: fromAddress,
     );
@@ -238,7 +238,7 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
     WithdrawPrepareParams params,
     WalletWithdrawData perviousData,
   ) async {
-    const chain = 'TRX';
+    final chain = params.chain;
     final symbol = params.symbol;
     final toAddress = params.toAddress;
     final fromAddress = params.fromAddress;
@@ -246,7 +246,7 @@ extension WalletActionsWithdrawPrepare on WalletActionsCubit {
     final feeJson = await WalletRepository().getFee(
       chain: chain,
       symbol: symbol,
-      data: params.txData,
+      txData: params.txData,
       toAddress: toAddress,
       fromAddress: fromAddress,
     );

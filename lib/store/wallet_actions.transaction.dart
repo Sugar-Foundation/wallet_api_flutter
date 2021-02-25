@@ -6,38 +6,37 @@ extension WalletActionsTransaction on WalletActionsCubit {
     @required String symbol,
     @required String address,
     @required int chainPrecision,
-    int page = 0,
     int skip = 0,
+    int page = 0,
 
     /// If provided, will use fingerprint instead of the page to load more data
     String fingerprint,
 
     /// If True will not call API to fetch transaction, will only return cached data
-    bool skipRequest = false,
+    bool onlyCache = false,
   }) async {
     /// Start with transaction from cache, so we show pending transactions
-    final transactions = await WalletRepository().getTransactionsFromCache(
+    final allTransactions = await WalletRepository().getTransactionsFromCache(
       symbol: symbol,
       address: address,
     );
 
     var apiError;
-    var fingerprint = '';
+    var newFingerprint;
     var newTransactions = <Transaction>[];
     try {
-      if (skipRequest != true) {
+      if (onlyCache != true) {
         /// Get confirmed transaction on the network
         final rawData = await WalletRepository().getTransactionsFromApi(
           chain: chain,
           symbol: symbol,
           address: address,
-          page: fingerprint ?? '$page',
           skip: skip,
+          page: fingerprint ?? '$page',
         );
-
         switch (chain) {
           case 'ETH':
-            newTransactions = rawData
+            newTransactions = rawData.value
                 .map((item) => Transaction.fromETHTx(
                       symbol,
                       address,
@@ -47,7 +46,7 @@ extension WalletActionsTransaction on WalletActionsCubit {
                 .toList();
             break;
           case 'BTC':
-            newTransactions = rawData
+            newTransactions = rawData.value
                 .map((item) => Transaction.fromBTCTx(
                       symbol,
                       address,
@@ -56,7 +55,7 @@ extension WalletActionsTransaction on WalletActionsCubit {
                 .toList();
             break;
           case 'BBC':
-            newTransactions = rawData
+            newTransactions = rawData.value
                 .map((item) => Transaction.fromBBCTx(
                       symbol,
                       address,
@@ -65,7 +64,8 @@ extension WalletActionsTransaction on WalletActionsCubit {
                 .toList();
             break;
           case 'TRX':
-            newTransactions = rawData
+            newFingerprint = rawData.key;
+            newTransactions = rawData.value
                 .map((item) => Transaction.fromTRXTx(
                       symbol,
                       address,
@@ -82,11 +82,11 @@ extension WalletActionsTransaction on WalletActionsCubit {
 
     if (newTransactions.isNotEmpty) {
       final newTxIds = newTransactions.map((e) => e.txId).toSet();
-      transactions.retainWhere((x) => !newTxIds.contains(x.txId ?? ''));
-      transactions.addAll(newTransactions);
+      allTransactions.retainWhere((x) => !newTxIds.contains(x.txId ?? ''));
+      allTransactions.addAll(newTransactions);
     }
 
-    transactions.sort(
+    allTransactions.sort(
       (a, b) => b.timestamp == a.timestamp
           ? b.txId.compareTo(b.txId)
           : b.timestampSafe.compareTo(a.timestampSafe),
@@ -95,17 +95,17 @@ extension WalletActionsTransaction on WalletActionsCubit {
     await WalletRepository().saveTransactionsToCache(
       symbol: symbol,
       address: address,
-      transactions: transactions,
+      transactions: allTransactions,
     );
 
     return WalletTransactionData(
-      page: page,
       skip: skip,
+      page: page,
       apiError: apiError,
-      fingerprint: fingerprint,
-      transactions: transactions,
+      fingerprint: newFingerprint,
+      transactions: allTransactions,
       newCount: newTransactions.length,
-      totalCount: transactions.length,
+      totalCount: allTransactions.length,
     );
   }
 
